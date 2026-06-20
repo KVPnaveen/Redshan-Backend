@@ -33,6 +33,7 @@ public class UserServiceImpl implements UserService {
                 .lastName(registerRequest.getLastName())
                 .email(registerRequest.getEmail())
                 .phone(registerRequest.getPhone())
+                .address(registerRequest.getAddress())
                 .password(passwordEncoder.encode(registerRequest.getPassword()))
                 .role(Role.CUSTOMER) // Default role = CUSTOMER
                 .build();
@@ -66,6 +67,7 @@ public class UserServiceImpl implements UserService {
                 .lastName(user.getLastName())
                 .email(user.getEmail())
                 .phone(user.getPhone())
+                .address(user.getAddress())
                 .role(user.getRole())
                 .createdAt(user.getCreatedAt())
                 .build();
