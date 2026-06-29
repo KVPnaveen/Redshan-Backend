@@ -2,7 +2,6 @@ package com.redshanflora.redshanflora_backend.dto;
 
 import lombok.*;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
@@ -19,10 +18,7 @@ public class ProductResponse {
     private BigDecimal price;
     private Integer stockQuantity;
     private String imageUrl;
-    private String view360Url;
     private BigDecimal discountPercentage;
-    private Boolean featured;
-    private String status;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private CategoryResponse category;
+    private SubCategoryResponse subCategory;
 }

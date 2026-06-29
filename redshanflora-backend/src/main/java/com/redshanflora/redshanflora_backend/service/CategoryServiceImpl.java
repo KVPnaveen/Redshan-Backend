@@ -36,8 +36,8 @@ public class CategoryServiceImpl implements CategoryService {
                 .id(category.getId())
                 .categoryName(category.getCategoryName())
                 .description(category.getDescription())
-                .imageUrl(category.getImageUrl())
-                .createdAt(category.getCreatedAt())
+                .imageUrl(null)
+                .createdAt(null)
                 .build();
     }
 }

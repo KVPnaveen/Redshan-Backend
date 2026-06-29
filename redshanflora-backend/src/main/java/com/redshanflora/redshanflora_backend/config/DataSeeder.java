@@ -9,54 +9,66 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class DataSeeder implements CommandLineRunner {
 
-    private  final JdbcTemplate jdbcTemplate;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(String... args) throws Exception {
-        // 1. Seed Categories
-        executeSafe("INSERT INTO categories (category_id, category_name, description, image_url, created_at) " +
-                "VALUES (1, 'Bouquets', 'Beautiful handcrafted artificial flower bouquets for every occasion.', 'bouquets.jpg', NOW()) " +
+        // 0. Clean legacy wishlist constraints and tables to map to "user" table
+        executeSafe("ALTER TABLE IF EXISTS wishlist DROP CONSTRAINT IF EXISTS fktrd6335blsefl2gxpb8lr0gr7");
+        executeSafe("DROP TABLE IF EXISTS wishlist CASCADE");
+        executeSafe("CREATE TABLE wishlist (" +
+                "wishlist_id SERIAL PRIMARY KEY, " +
+                "user_id INTEGER NOT NULL, " +
+                "product_id INTEGER NOT NULL, " +
+                "created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                "FOREIGN KEY (product_id) REFERENCES product(product_id) ON DELETE CASCADE, " +
+                "FOREIGN KEY (user_id) REFERENCES \"user\"(user_id) ON DELETE CASCADE" +
+                ")");
+
+        // 1. Seed Category Table
+        executeSafe("INSERT INTO category (category_id, category_name, description) " +
+                "VALUES (1, 'Bouquets', 'Beautiful handcrafted artificial flower bouquets for every occasion.') " +
                 "ON CONFLICT (category_id) DO NOTHING");
-        executeSafe("INSERT INTO categories (category_id, category_name, description, image_url, created_at) " +
-                "VALUES (2, 'Head Dresses', 'Elegant handmade artificial flower head dresses for weddings and events.', 'head_dresses.jpg', NOW()) " +
+        executeSafe("INSERT INTO category (category_id, category_name, description) " +
+                "VALUES (2, 'Head Dresses', 'Elegant handmade artificial flower head dresses for weddings and events.') " +
                 "ON CONFLICT (category_id) DO NOTHING");
-        executeSafe("INSERT INTO categories (category_id, category_name, description, image_url, created_at) " +
-                "VALUES (3, 'Individual Flowers', 'Single artificial flowers including roses, lilies, orchids, and more.', 'individual_flowers.jpg', NOW()) " +
+        executeSafe("INSERT INTO category (category_id, category_name, description) " +
+                "VALUES (3, 'Individual Flowers', 'Single artificial flowers including roses, lilies, orchids, and more.') " +
                 "ON CONFLICT (category_id) DO NOTHING");
-        executeSafe("INSERT INTO categories (category_id, category_name, description, image_url, created_at) " +
-                "VALUES (4, 'Wedding Collections', 'Premium artificial flower collections specially designed for weddings.', 'wedding_collections.jpg', NOW()) " +
+        executeSafe("INSERT INTO category (category_id, category_name, description) " +
+                "VALUES (4, 'Wedding Collections', 'Premium artificial flower collections specially designed for weddings.') " +
                 "ON CONFLICT (category_id) DO NOTHING");
 
-        // 2. Seed Subcategories (We use try-catch safely, and map to existing subcategories if they exist)
-        executeSafe("INSERT INTO sub_categories (sub_category_id, category_id, sub_category_name, description, created_at) " +
-                "VALUES (20, 1, 'Anniversary', 'Anniversary bouquets', NOW()) " +
+        // 2. Seed SubCategory Table
+        executeSafe("INSERT INTO sub_category (sub_category_id, category_id, sub_category_name) " +
+                "VALUES (20, 1, 'Anniversary') " +
                 "ON CONFLICT (sub_category_id) DO NOTHING");
-        executeSafe("INSERT INTO sub_categories (sub_category_id, category_id, sub_category_name, description, created_at) " +
-                "VALUES (21, 1, 'Birthday', 'Birthday bouquets', NOW()) " +
+        executeSafe("INSERT INTO sub_category (sub_category_id, category_id, sub_category_name) " +
+                "VALUES (21, 1, 'Birthday') " +
                 "ON CONFLICT (sub_category_id) DO NOTHING");
-        executeSafe("INSERT INTO sub_categories (sub_category_id, category_id, sub_category_name, description, created_at) " +
-                "VALUES (22, 1, 'Convocation', 'Convocation bouquets', NOW()) " +
+        executeSafe("INSERT INTO sub_category (sub_category_id, category_id, sub_category_name) " +
+                "VALUES (22, 1, 'Convocation') " +
                 "ON CONFLICT (sub_category_id) DO NOTHING");
-        executeSafe("INSERT INTO sub_categories (sub_category_id, category_id, sub_category_name, description, created_at) " +
-                "VALUES (23, 2, 'Wedding', 'Wedding head dresses', NOW()) " +
+        executeSafe("INSERT INTO sub_category (sub_category_id, category_id, sub_category_name) " +
+                "VALUES (23, 2, 'Wedding') " +
                 "ON CONFLICT (sub_category_id) DO NOTHING");
-        executeSafe("INSERT INTO sub_categories (sub_category_id, category_id, sub_category_name, description, created_at) " +
-                "VALUES (24, 2, 'Birthday', 'Birthday head dresses', NOW()) " +
+        executeSafe("INSERT INTO sub_category (sub_category_id, category_id, sub_category_name) " +
+                "VALUES (24, 2, 'Birthday') " +
                 "ON CONFLICT (sub_category_id) DO NOTHING");
-        executeSafe("INSERT INTO sub_categories (sub_category_id, category_id, sub_category_name, description, created_at) " +
-                "VALUES (25, 3, 'Anniversary', 'Anniversary flowers', NOW()) " +
+        executeSafe("INSERT INTO sub_category (sub_category_id, category_id, sub_category_name) " +
+                "VALUES (25, 3, 'Anniversary') " +
                 "ON CONFLICT (sub_category_id) DO NOTHING");
-        executeSafe("INSERT INTO sub_categories (sub_category_id, category_id, sub_category_name, description, created_at) " +
-                "VALUES (26, 3, 'Birthday', 'Birthday flowers', NOW()) " +
+        executeSafe("INSERT INTO sub_category (sub_category_id, category_id, sub_category_name) " +
+                "VALUES (26, 3, 'Birthday') " +
                 "ON CONFLICT (sub_category_id) DO NOTHING");
-        executeSafe("INSERT INTO sub_categories (sub_category_id, category_id, sub_category_name, description, created_at) " +
-                "VALUES (27, 3, 'Convocation', 'Convocation flowers', NOW()) " +
+        executeSafe("INSERT INTO sub_category (sub_category_id, category_id, sub_category_name) " +
+                "VALUES (27, 3, 'Convocation') " +
                 "ON CONFLICT (sub_category_id) DO NOTHING");
-        executeSafe("INSERT INTO sub_categories (sub_category_id, category_id, sub_category_name, description, created_at) " +
-                "VALUES (9, 4, 'Table Arrangements', 'Table Arrangements', NOW()) " +
+        executeSafe("INSERT INTO sub_category (sub_category_id, category_id, sub_category_name) " +
+                "VALUES (9, 4, 'Table Arrangements') " +
                 "ON CONFLICT (sub_category_id) DO NOTHING");
 
-        // 3. Seed Products 1 to 45
+        // 3. Seed Product Table (Products 1 to 45)
         for (int id = 1; id <= 45; id++) {
             int categoryId = 1;
             String subName = "Anniversary";
@@ -91,15 +103,15 @@ public class DataSeeder implements CommandLineRunner {
             double price = getProductPrice(id);
 
             executeSafe(String.format(
-                "INSERT INTO products (product_id, category_id, sub_category_id, product_name, description, price, stock_quantity, image_url, view_360_url, discount_percentage, featured, status, created_at, updated_at) " +
-                "VALUES (%d, %d, %d, '%s', 'Handcrafted premium artificial arrangement.', %.2f, 50, 'product_%d.png', '', 0.0, true, 'ACTIVE', NOW(), NOW()) " +
+                "INSERT INTO product (product_id, category_id, sub_category_id, product_name, description, price, stock_quantity, discount_percentage, image_url) " +
+                "VALUES (%d, %d, %d, '%s', 'Handcrafted premium artificial arrangement.', %.2f, 50, 0.0, 'product_%d.png') " +
                 "ON CONFLICT (product_id) DO UPDATE SET price = EXCLUDED.price", id, categoryId, subCategoryId, name, price, id));
         }
 
-        // 4. Adjust PostgreSQL sequences
-        executeSafe("SELECT setval('products_product_id_seq', COALESCE((SELECT MAX(product_id)+1 FROM products), 1), false)");
-        executeSafe("SELECT setval('categories_category_id_seq', COALESCE((SELECT MAX(category_id)+1 FROM categories), 1), false)");
-        executeSafe("SELECT setval('sub_categories_sub_category_id_seq', COALESCE((SELECT MAX(sub_category_id)+1 FROM sub_categories), 1), false)");
+        // 4. Adjust Sequences
+        executeSafe("SELECT setval('product_product_id_seq', COALESCE((SELECT MAX(product_id)+1 FROM product), 1), false)");
+        executeSafe("SELECT setval('category_category_id_seq', COALESCE((SELECT MAX(category_id)+1 FROM category), 1), false)");
+        executeSafe("SELECT setval('sub_category_sub_category_id_seq', COALESCE((SELECT MAX(sub_category_id)+1 FROM sub_category), 1), false)");
     }
 
     private double getProductPrice(int id) {

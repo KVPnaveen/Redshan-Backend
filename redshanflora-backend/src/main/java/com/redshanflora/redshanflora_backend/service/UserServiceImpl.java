@@ -4,10 +4,12 @@ import com.redshanflora.redshanflora_backend.dto.AuthResponse;
 import com.redshanflora.redshanflora_backend.dto.LoginRequest;
 import com.redshanflora.redshanflora_backend.dto.RegisterRequest;
 import com.redshanflora.redshanflora_backend.dto.UserResponse;
+import com.redshanflora.redshanflora_backend.entity.Customer;
 import com.redshanflora.redshanflora_backend.entity.Role;
 import com.redshanflora.redshanflora_backend.entity.User;
 import com.redshanflora.redshanflora_backend.exception.EmailAlreadyExistsException;
 import com.redshanflora.redshanflora_backend.exception.InvalidCredentialsException;
+import com.redshanflora.redshanflora_backend.repository.CustomerRepository;
 import com.redshanflora.redshanflora_backend.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final CustomerRepository customerRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -28,17 +31,27 @@ public class UserServiceImpl implements UserService {
             throw new EmailAlreadyExistsException("Email already in use");
         }
 
+        // 1. Build and save the main User entity
         User user = User.builder()
-                .firstName(registerRequest.getFirstName())
-                .lastName(registerRequest.getLastName())
+                .name(registerRequest.getFirstName() + " " + registerRequest.getLastName())
                 .email(registerRequest.getEmail())
                 .phone(registerRequest.getPhone())
-                .address(registerRequest.getAddress())
                 .password(passwordEncoder.encode(registerRequest.getPassword()))
-                .role(Role.CUSTOMER) // Default role = CUSTOMER
+                .role(Role.CUSTOMER) // Default role is CUSTOMER
                 .build();
 
         User savedUser = userRepository.save(user);
+
+        // 2. Build and save the associated Customer entity
+        Customer customer = Customer.builder()
+                .user(savedUser)
+                .address(registerRequest.getAddress())
+                .loyaltyPoints(0)
+                .build();
+        
+        Customer savedCustomer = customerRepository.save(customer);
+        savedUser.setCustomer(savedCustomer); // link back in-memory for response mapping
+
         return mapToUserResponse(savedUser);
     }
 
@@ -69,7 +82,7 @@ public class UserServiceImpl implements UserService {
                 .phone(user.getPhone())
                 .address(user.getAddress())
                 .role(user.getRole())
-                .createdAt(user.getCreatedAt())
+                .createdAt(user.getRegisteredDate())
                 .build();
     }
 }
