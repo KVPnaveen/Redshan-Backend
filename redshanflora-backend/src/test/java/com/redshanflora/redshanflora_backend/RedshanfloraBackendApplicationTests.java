@@ -51,8 +51,7 @@ class RedshanfloraBackendApplicationTests {
 	void testAddToWishlist() {
 		// 1. Create a dummy user
 		User user = User.builder()
-				.firstName("John")
-				.lastName("Doe")
+				.name("John Doe")
 				.email("john.doe.wishlist@example.com")
 				.password("password")
 				.role(Role.CUSTOMER)

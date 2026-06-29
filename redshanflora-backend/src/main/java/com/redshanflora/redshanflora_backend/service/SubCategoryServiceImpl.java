@@ -48,8 +48,8 @@ public class SubCategoryServiceImpl implements SubCategoryService {
                 .id(subCategory.getId())
                 .categoryId(subCategory.getCategory().getId())
                 .subCategoryName(subCategory.getSubCategoryName())
-                .description(subCategory.getDescription())
-                .createdAt(subCategory.getCreatedAt())
+                .description(null)
+                .createdAt(null)
                 .build();
     }
 }

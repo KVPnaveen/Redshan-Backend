@@ -1,7 +1,9 @@
 package com.redshanflora.redshanflora_backend.service;
 
+import com.redshanflora.redshanflora_backend.dto.CategoryResponse;
 import com.redshanflora.redshanflora_backend.dto.ProductRequest;
 import com.redshanflora.redshanflora_backend.dto.ProductResponse;
+import com.redshanflora.redshanflora_backend.dto.SubCategoryResponse;
 import com.redshanflora.redshanflora_backend.entity.Category;
 import com.redshanflora.redshanflora_backend.entity.Product;
 import com.redshanflora.redshanflora_backend.entity.SubCategory;
@@ -60,7 +62,9 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public List<ProductResponse> getFeaturedProducts() {
-        return productRepository.findByFeaturedTrue().stream()
+        // Since the 'featured' column is removed in the new schema, we fallback to returning the first 8 products.
+        return productRepository.findAll().stream()
+                .limit(8)
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -93,12 +97,9 @@ public class ProductServiceImpl implements ProductService {
                 .productName(request.getProductName())
                 .description(request.getDescription())
                 .price(request.getPrice())
-                .stockQuantity(request.getStockQuantity())
+                .stockQuantity(request.getStockQuantity() != null ? request.getStockQuantity() : 0)
                 .imageUrl(request.getImageUrl())
-                .view360Url(request.getView360Url())
-                .discountPercentage(request.getDiscountPercentage())
-                .featured(request.getFeatured() != null ? request.getFeatured() : false)
-                .status(request.getStatus() != null ? request.getStatus() : "ACTIVE")
+                .discountPercentage(request.getDiscountPercentage() != null ? request.getDiscountPercentage() : java.math.BigDecimal.ZERO)
                 .build();
 
         Product savedProduct = productRepository.save(product);
@@ -125,15 +126,12 @@ public class ProductServiceImpl implements ProductService {
         product.setProductName(request.getProductName());
         product.setDescription(request.getDescription());
         product.setPrice(request.getPrice());
-        product.setStockQuantity(request.getStockQuantity());
-        product.setImageUrl(request.getImageUrl());
-        product.setView360Url(request.getView360Url());
-        product.setDiscountPercentage(request.getDiscountPercentage());
-        if (request.getFeatured() != null) {
-            product.setFeatured(request.getFeatured());
+        if (request.getStockQuantity() != null) {
+            product.setStockQuantity(request.getStockQuantity());
         }
-        if (request.getStatus() != null) {
-            product.setStatus(request.getStatus());
+        product.setImageUrl(request.getImageUrl());
+        if (request.getDiscountPercentage() != null) {
+            product.setDiscountPercentage(request.getDiscountPercentage());
         }
 
         Product updatedProduct = productRepository.save(product);
@@ -161,12 +159,17 @@ public class ProductServiceImpl implements ProductService {
                 .price(product.getPrice())
                 .stockQuantity(product.getStockQuantity())
                 .imageUrl(product.getImageUrl())
-                .view360Url(product.getView360Url())
                 .discountPercentage(product.getDiscountPercentage())
-                .featured(product.getFeatured())
-                .status(product.getStatus())
-                .createdAt(product.getCreatedAt())
-                .updatedAt(product.getUpdatedAt())
+                .category(CategoryResponse.builder()
+                        .id(product.getCategory().getId())
+                        .categoryName(product.getCategory().getCategoryName())
+                        .description(product.getCategory().getDescription())
+                        .build())
+                .subCategory(product.getSubCategory() != null ? SubCategoryResponse.builder()
+                        .id(product.getSubCategory().getId())
+                        .categoryId(product.getCategory().getId())
+                        .subCategoryName(product.getSubCategory().getSubCategoryName())
+                        .build() : null)
                 .build();
     }
 }

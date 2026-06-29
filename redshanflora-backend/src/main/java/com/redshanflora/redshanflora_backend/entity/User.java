@@ -5,7 +5,7 @@ import lombok.*;
 import java.time.Instant;
 
 @Entity
-@Table(name = "users")
+@Table(name = "\"user\"")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -18,33 +18,50 @@ public class User {
     @Column(name = "user_id")
     private Long id;
 
-    @Column(name = "first_name", nullable = false)
-    private String firstName;
+    @Column(name = "name", nullable = false, length = 100)
+    private String name;
 
-    @Column(name = "last_name", nullable = false)
-    private String lastName;
-
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 120)
     private String email;
 
-    @Column(nullable = true)
+    @Column(nullable = true, length = 20)
     private String phone;
 
-    @Column(nullable = true)
-    private String address;
-
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     private String password;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private Role role;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+    @Column(name = "registered_date", nullable = false, updatable = false)
+    private Instant registeredDate;
+
+    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private Customer customer;
 
     @PrePersist
     protected void onCreate() {
-        createdAt = Instant.now();
+        registeredDate = Instant.now();
+    }
+
+    public String getFirstName() {
+        if (name == null || name.trim().isEmpty()) {
+            return "";
+        }
+        int spaceIndex = name.indexOf(' ');
+        return spaceIndex == -1 ? name : name.substring(0, spaceIndex);
+    }
+
+    public String getLastName() {
+        if (name == null || name.trim().isEmpty()) {
+            return "";
+        }
+        int spaceIndex = name.indexOf(' ');
+        return spaceIndex == -1 ? "" : name.substring(spaceIndex + 1);
+    }
+
+    public String getAddress() {
+        return customer != null ? customer.getAddress() : null;
     }
 }
