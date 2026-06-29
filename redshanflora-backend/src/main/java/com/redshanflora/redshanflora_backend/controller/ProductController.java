@@ -1,7 +1,7 @@
 package com.redshanflora.redshanflora_backend.controller;
 
-import com.redshanflora.redshanflora_backend.dto.ProductRequest;
-import com.redshanflora.redshanflora_backend.dto.ProductResponse;
+import com.redshanflora.redshanflora_backend.dto.product.ProductRequest;
+import com.redshanflora.redshanflora_backend.dto.product.ProductResponse;
 import com.redshanflora.redshanflora_backend.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

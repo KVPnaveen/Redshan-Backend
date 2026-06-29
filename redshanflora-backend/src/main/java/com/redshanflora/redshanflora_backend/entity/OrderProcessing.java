@@ -1,5 +1,7 @@
 package com.redshanflora.redshanflora_backend.entity;
 
+import com.redshanflora.redshanflora_backend.enums.MainOrderStatus;
+import com.redshanflora.redshanflora_backend.enums.SubStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;

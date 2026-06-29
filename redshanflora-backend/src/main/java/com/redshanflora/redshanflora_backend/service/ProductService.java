@@ -1,7 +1,7 @@
 package com.redshanflora.redshanflora_backend.service;
 
-import com.redshanflora.redshanflora_backend.dto.ProductRequest;
-import com.redshanflora.redshanflora_backend.dto.ProductResponse;
+import com.redshanflora.redshanflora_backend.dto.product.ProductRequest;
+import com.redshanflora.redshanflora_backend.dto.product.ProductResponse;
 import java.util.List;
 
 public interface ProductService {
