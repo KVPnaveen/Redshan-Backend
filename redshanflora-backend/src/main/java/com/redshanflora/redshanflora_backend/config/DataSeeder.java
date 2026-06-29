@@ -88,17 +88,62 @@ public class DataSeeder implements CommandLineRunner {
             }
 
             int subCategoryId = getSubCategoryId(categoryId, subName);
+            double price = getProductPrice(id);
 
             executeSafe(String.format(
                 "INSERT INTO products (product_id, category_id, sub_category_id, product_name, description, price, stock_quantity, image_url, view_360_url, discount_percentage, featured, status, created_at, updated_at) " +
-                "VALUES (%d, %d, %d, '%s', 'Handcrafted premium artificial arrangement.', 1500.00, 50, 'product_%d.png', '', 0.0, true, 'ACTIVE', NOW(), NOW()) " +
-                "ON CONFLICT (product_id) DO NOTHING", id, categoryId, subCategoryId, name, id));
+                "VALUES (%d, %d, %d, '%s', 'Handcrafted premium artificial arrangement.', %.2f, 50, 'product_%d.png', '', 0.0, true, 'ACTIVE', NOW(), NOW()) " +
+                "ON CONFLICT (product_id) DO UPDATE SET price = EXCLUDED.price", id, categoryId, subCategoryId, name, price, id));
         }
 
         // 4. Adjust PostgreSQL sequences
         executeSafe("SELECT setval('products_product_id_seq', COALESCE((SELECT MAX(product_id)+1 FROM products), 1), false)");
         executeSafe("SELECT setval('categories_category_id_seq', COALESCE((SELECT MAX(category_id)+1 FROM categories), 1), false)");
         executeSafe("SELECT setval('sub_categories_sub_category_id_seq', COALESCE((SELECT MAX(sub_category_id)+1 FROM sub_categories), 1), false)");
+    }
+
+    private double getProductPrice(int id) {
+        switch (id) {
+            case 1: return 15000.00;
+            case 2: return 11420.00;
+            case 3: return 800.00;
+            case 4: return 1500.00;
+            case 5: return 2750.00;
+            case 6: return 4110.00;
+            case 7: return 3420.00;
+            case 8: return 6500.00;
+            case 9: return 3850.00;
+            case 10: return 7800.00;
+            case 11: return 9500.00;
+            case 12: return 12000.00;
+            case 13: return 8500.00;
+            case 14: return 5500.00;
+            case 15: return 6200.00;
+            case 16: return 4800.00;
+            case 17: return 7000.00;
+            case 18: return 5900.00;
+            case 19: return 3500.00;
+            case 20: return 3800.00;
+            case 21: return 4200.00;
+            case 22: return 3200.00;
+            case 23: return 3900.00;
+            case 24: return 1200.00;
+            case 25: return 1250.00;
+            case 26: return 1400.00;
+            case 27: return 1300.00;
+            case 28: return 1500.00;
+            case 29: return 1350.00;
+            case 30: return 1100.00;
+            case 31: return 1600.00;
+            case 32: return 1250.00;
+            case 33: return 1300.00;
+            case 34: return 950.00;
+            case 35: return 1000.00;
+            case 36: return 1150.00;
+            case 37: return 980.00;
+            case 38: return 1050.00;
+            default: return 1500.00;
+        }
     }
 
     private int getSubCategoryId(int categoryId, String subCategoryName) {
