@@ -1,6 +1,6 @@
 package com.redshanflora.redshanflora_backend.controller;
 
-import com.redshanflora.redshanflora_backend.dto.CategoryResponse;
+import com.redshanflora.redshanflora_backend.dto.category.CategoryResponse;
 import com.redshanflora.redshanflora_backend.service.CategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

@@ -1,7 +1,7 @@
 package com.redshanflora.redshanflora_backend.service;
 
-import com.redshanflora.redshanflora_backend.dto.WishlistRequest;
-import com.redshanflora.redshanflora_backend.dto.WishlistResponse;
+import com.redshanflora.redshanflora_backend.dto.wishlist.WishlistRequest;
+import com.redshanflora.redshanflora_backend.dto.wishlist.WishlistResponse;
 import java.util.List;
 
 public interface WishlistService {

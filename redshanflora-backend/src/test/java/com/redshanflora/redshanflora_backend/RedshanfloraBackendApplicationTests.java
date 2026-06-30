@@ -1,13 +1,13 @@
 package com.redshanflora.redshanflora_backend;
 
 import com.redshanflora.redshanflora_backend.controller.CheckoutController;
-import com.redshanflora.redshanflora_backend.dto.CartItemDto;
-import com.redshanflora.redshanflora_backend.dto.CheckoutRequest;
-import com.redshanflora.redshanflora_backend.dto.CheckoutResponse;
-import com.redshanflora.redshanflora_backend.dto.WishlistRequest;
-import com.redshanflora.redshanflora_backend.dto.WishlistResponse;
+import com.redshanflora.redshanflora_backend.dto.cart.CartItemDto;
+import com.redshanflora.redshanflora_backend.dto.payment.CheckoutRequest;
+import com.redshanflora.redshanflora_backend.dto.payment.CheckoutResponse;
+import com.redshanflora.redshanflora_backend.dto.wishlist.WishlistRequest;
+import com.redshanflora.redshanflora_backend.dto.wishlist.WishlistResponse;
 import com.redshanflora.redshanflora_backend.entity.Product;
-import com.redshanflora.redshanflora_backend.entity.Role;
+import com.redshanflora.redshanflora_backend.enums.Role;
 import com.redshanflora.redshanflora_backend.entity.User;
 import com.redshanflora.redshanflora_backend.repository.ProductRepository;
 import com.redshanflora.redshanflora_backend.repository.UserRepository;

@@ -1,6 +1,6 @@
 package com.redshanflora.redshanflora_backend.service;
 
-import com.redshanflora.redshanflora_backend.dto.SubCategoryResponse;
+import com.redshanflora.redshanflora_backend.dto.category.SubCategoryResponse;
 import java.util.List;
 
 public interface SubCategoryService {

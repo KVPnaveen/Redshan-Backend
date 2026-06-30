@@ -1,8 +1,8 @@
 package com.redshanflora.redshanflora_backend.controller;
 
-import com.redshanflora.redshanflora_backend.dto.WishlistCountResponse;
-import com.redshanflora.redshanflora_backend.dto.WishlistRequest;
-import com.redshanflora.redshanflora_backend.dto.WishlistResponse;
+import com.redshanflora.redshanflora_backend.dto.wishlist.WishlistCountResponse;
+import com.redshanflora.redshanflora_backend.dto.wishlist.WishlistRequest;
+import com.redshanflora.redshanflora_backend.dto.wishlist.WishlistResponse;
 import com.redshanflora.redshanflora_backend.service.WishlistService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

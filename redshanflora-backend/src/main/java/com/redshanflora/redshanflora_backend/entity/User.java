@@ -1,5 +1,6 @@
 package com.redshanflora.redshanflora_backend.entity;
 
+import com.redshanflora.redshanflora_backend.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
