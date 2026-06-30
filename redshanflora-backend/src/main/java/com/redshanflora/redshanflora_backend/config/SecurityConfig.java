@@ -31,6 +31,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/register").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .anyRequest().permitAll() // Allow all endpoints in development
                 )
@@ -46,6 +47,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/register").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/checkout/**").permitAll()
                         .anyRequest().authenticated() // Enforce authentication in production
