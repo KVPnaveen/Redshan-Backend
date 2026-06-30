@@ -2,10 +2,9 @@ package com.redshanflora.redshanflora_backend.controller;
 
 import com.redshanflora.redshanflora_backend.dto.RegisterRequestDTO;
 import com.redshanflora.redshanflora_backend.dto.RegisterResponseDTO;
-import com.redshanflora.redshanflora_backend.dto.users.AuthResponse;
-import com.redshanflora.redshanflora_backend.dto.users.LoginRequest;
+import com.redshanflora.redshanflora_backend.dto.LoginRequestDTO;
+import com.redshanflora.redshanflora_backend.dto.LoginResponseDTO;
 import com.redshanflora.redshanflora_backend.service.AuthService;
-import com.redshanflora.redshanflora_backend.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -15,10 +14,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@CrossOrigin
 public class AuthController {
 
-    private final UserService userService;
     private final AuthService authService;
 
     @PostMapping("/register")
@@ -28,8 +25,8 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest loginRequest) {
-        AuthResponse response = userService.loginUser(loginRequest);
+    public ResponseEntity<LoginResponseDTO> login(@Valid @RequestBody LoginRequestDTO loginRequest) {
+        LoginResponseDTO response = authService.login(loginRequest);
         return ResponseEntity.ok(response);
     }
 }
