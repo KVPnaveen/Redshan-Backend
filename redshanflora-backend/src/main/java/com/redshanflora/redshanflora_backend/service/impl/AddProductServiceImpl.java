@@ -1,6 +1,7 @@
 package com.redshanflora.redshanflora_backend.service.impl;
 
 import com.redshanflora.redshanflora_backend.dto.product.AddProductDTO;
+import com.redshanflora.redshanflora_backend.dto.product.AddProductResponseDTO;
 import com.redshanflora.redshanflora_backend.entity.Category;
 import com.redshanflora.redshanflora_backend.entity.Product;
 import com.redshanflora.redshanflora_backend.entity.SubCategory;
@@ -27,7 +28,7 @@ public class AddProductServiceImpl implements AddProductService {
     }
 
     @Override
-    public void addProduct(AddProductDTO dto) {
+    public AddProductResponseDTO addProduct(AddProductDTO dto) {
 
         Category category = categoryRepository.findById(dto.getCategoryId().longValue())
                 .orElseThrow(() -> new RuntimeException("Category not found"));
@@ -45,6 +46,21 @@ public class AddProductServiceImpl implements AddProductService {
         product.setStockQuantity(dto.getStockQuantity());
         product.setImageUrl(dto.getImageUrl());
 
-        productRepository.save(product);
+        Product savedProduct = productRepository.save(product);
+
+        return getAddProductResponseDTO(savedProduct);
+    }
+
+    private static AddProductResponseDTO getAddProductResponseDTO(Product savedProduct) {
+        AddProductResponseDTO response = new AddProductResponseDTO();
+        response.setId(savedProduct.getId());
+        response.setCategoryId(savedProduct.getCategory().getId().intValue());
+        response.setSubCategoryId(savedProduct.getSubCategory().getId().intValue());
+        response.setProductName(savedProduct.getProductName());
+        response.setDescription(savedProduct.getDescription());
+        response.setPrice(savedProduct.getPrice());
+        response.setStockQuantity(savedProduct.getStockQuantity());
+        response.setImageUrl(savedProduct.getImageUrl());
+        return response;
     }
 }
