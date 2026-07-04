@@ -62,6 +62,19 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
+    public List<ProductResponse> getProductsByCategoryIdAndSubCategoryId(Long categoryId, Long subCategoryId) {
+        if (!categoryRepository.existsById(categoryId)) {
+            throw new ResourceNotFoundException("Category not found with id: " + categoryId);
+        }
+        if (!subCategoryRepository.existsById(subCategoryId)) {
+            throw new ResourceNotFoundException("Subcategory not found with id: " + subCategoryId);
+        }
+        return productRepository.findByCategory_IdAndSubCategory_Id(categoryId, subCategoryId).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
     public List<ProductResponse> getFeaturedProducts() {
         // Since the 'featured' column is removed in the new schema, we fallback to returning the first 8 products.
         return productRepository.findAll().stream()
@@ -160,6 +173,7 @@ public class ProductServiceImpl implements ProductService {
                 .price(product.getPrice())
                 .stockQuantity(product.getStockQuantity())
                 .imageUrl(product.getImageUrl())
+                .modelUrl(product.getModelUrl())
                 .discountPercentage(product.getDiscountPercentage())
                 .category(CategoryResponse.builder()
                         .id(product.getCategory().getId())
