@@ -2,6 +2,7 @@ package com.redshanflora.redshanflora_backend.dto.product;
 
 import com.redshanflora.redshanflora_backend.dto.category.CategoryResponse;
 import com.redshanflora.redshanflora_backend.dto.category.SubCategoryResponse;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 import java.math.BigDecimal;
 
@@ -10,6 +11,7 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 @Builder
 public class ProductResponse {
+    @JsonProperty("productId")
     private Long id;
     private Long categoryId;
     private String categoryName;
@@ -23,4 +25,5 @@ public class ProductResponse {
     private BigDecimal discountPercentage;
     private CategoryResponse category;
     private SubCategoryResponse subCategory;
+    private String modelUrl;
 }
