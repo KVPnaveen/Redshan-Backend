@@ -21,4 +21,10 @@ public class AdminUserController {
         AdminUserResponse response = adminUserService.registerManager(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
+
+    @PostMapping("/register-employee")
+    public ResponseEntity<AdminUserResponse> registerEmployee(@Valid @RequestBody AdminUserRequest request) {
+        AdminUserResponse response = adminUserService.registerEmployee(request);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
 }
