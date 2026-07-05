@@ -25,7 +25,7 @@ public class DatabaseSequenceSync implements CommandLineRunner {
         try {
             // Find and reset the sequence of the "user" table to MAX(user_id) + 1
             // Use pg_get_serial_sequence to dynamically resolve the sequence name
-            String sql = "SELECT setval(pg_get_serial_sequence('\"user\"', 'user_id'), COALESCE((SELECT MAX(user_id) FROM \"user\"), 0) + 1, false)";
+            String sql = "SELECT setval(pg_get_serial_sequence('\"users\"', 'user_id'), COALESCE((SELECT MAX(user_id) FROM \"users\"), 0) + 1, false)";
             jdbcTemplate.execute(sql);
             log.info("PostgreSQL sequence for 'user' table has been synchronized successfully.");
         } catch (Exception e) {
