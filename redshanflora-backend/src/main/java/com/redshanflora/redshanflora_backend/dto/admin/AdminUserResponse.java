@@ -18,5 +18,6 @@ public class AdminUserResponse {
     private String role;
     private Instant registeredDate;
     private Long managerId;
+    private Long employeeId;
     private Instant promoteDate;
 }
