@@ -45,4 +45,7 @@ public class Product {
 
     @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;
+
+    @Column(name = "model_url", columnDefinition = "TEXT")
+    private String modelUrl;
 }

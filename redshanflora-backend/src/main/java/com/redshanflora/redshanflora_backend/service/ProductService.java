@@ -9,6 +9,7 @@ public interface ProductService {
     ProductResponse getProductById(Long id);
     List<ProductResponse> getProductsByCategoryId(Long categoryId);
     List<ProductResponse> getProductsBySubCategoryId(Long subCategoryId);
+    List<ProductResponse> getProductsByCategoryIdAndSubCategoryId(Long categoryId, Long subCategoryId);
     List<ProductResponse> getFeaturedProducts();
     List<ProductResponse> searchProducts(String keyword);
     

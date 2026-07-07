@@ -10,9 +10,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CartItemDto {
     private Long id;
+    private Long productId;
     private String title;
     private Integer quantity;
     private Boolean isCustom;
     private Double numericPrice;
     private BouquetDesignDto bouquetDesign;
+    private String selectedColor;
 }

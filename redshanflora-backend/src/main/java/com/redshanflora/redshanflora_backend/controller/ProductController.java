@@ -37,6 +37,13 @@ public class ProductController {
         return ResponseEntity.ok(productService.getProductsBySubCategoryId(subCategoryId));
     }
 
+    @GetMapping("/category/{categoryId}/subcategory/{subCategoryId}")
+    public ResponseEntity<List<ProductResponse>> getProductsByCategoryIdAndSubCategoryId(
+            @PathVariable Long categoryId,
+            @PathVariable Long subCategoryId) {
+        return ResponseEntity.ok(productService.getProductsByCategoryIdAndSubCategoryId(categoryId, subCategoryId));
+    }
+
     @GetMapping("/featured")
     public ResponseEntity<List<ProductResponse>> getFeaturedProducts() {
         return ResponseEntity.ok(productService.getFeaturedProducts());
