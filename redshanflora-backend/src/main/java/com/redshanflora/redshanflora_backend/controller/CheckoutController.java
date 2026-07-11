@@ -136,35 +136,30 @@ public class CheckoutController {
             totalAmount += itemPrice * quantity;
         }
 
+        double discount = request.getDiscountAmount() != null ? request.getDiscountAmount() : 0.0;
+        totalAmount = Math.max(0.0, totalAmount - discount);
         totalAmount = Math.round(totalAmount * 100.0) / 100.0;
         
-        // 1. Resolve logged-in Customer or create/use fallback
+        // 1. Resolve logged-in Customer using findByUserId
         Customer customer = null;
         org.springframework.security.core.Authentication authentication = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated() && !(authentication instanceof org.springframework.security.authentication.AnonymousAuthenticationToken)) {
             String email = authentication.getName();
             User user = userRepository.findByEmail(email).orElse(null);
             if (user != null) {
-                customer = customerRepository.findByUser(user).orElse(null);
+                customer = customerRepository.findByUserId(user.getId()).orElse(null);
+                if (customer == null) {
+                    customer = Customer.builder()
+                            .user(user)
+                            .address(user.getAddress() != null ? user.getAddress() : "Default Address")
+                            .loyaltyPoints(0)
+                            .build();
+                    customer = customerRepository.save(customer);
+                }
             }
         }
         if (customer == null) {
-            customer = customerRepository.findAll().stream().findFirst().orElse(null);
-            if (customer == null) {
-                User dummyUser = User.builder()
-                        .name("Guest User")
-                        .email("guest@example.com")
-                        .password("password")
-                        .role(Role.CUSTOMER)
-                        .build();
-                dummyUser = userRepository.save(dummyUser);
-                customer = Customer.builder()
-                        .user(dummyUser)
-                        .address("123 Guest Street")
-                        .loyaltyPoints(0)
-                        .build();
-                customer = customerRepository.save(customer);
-            }
+            throw new com.redshanflora.redshanflora_backend.exception.ResourceNotFoundException("User is not authenticated or customer record is missing.");
         }
 
         // 2. Persist Order in database
@@ -318,6 +313,27 @@ public class CheckoutController {
             } else {
                 log.warn("Payment status requested for orderId={}, but no webhook was received. Mocking success for localhost testing.", orderId);
                 status = "SUCCESS";
+                try {
+                    Long orderIdVal = Long.parseLong(orderId.replace("ORDER-", ""));
+                    Order order = orderRepository.findById(orderIdVal).orElse(null);
+                    if (order != null) {
+                        Payment payment = order.getPayment();
+                        if (payment != null && "PENDING".equals(payment.getPaymentStatus())) {
+                            payment.setPaymentStatus("PAID");
+                            paymentRepository.save(payment);
+                            
+                            Customer customer = order.getCustomer();
+                            if (customer != null) {
+                                int additionalPoints = payment.getAmount().divide(BigDecimal.valueOf(100)).intValue();
+                                customer.setLoyaltyPoints(customer.getLoyaltyPoints() + additionalPoints);
+                                customerRepository.save(customer);
+                                log.info("Mocked success: Loyalty points updated for customerId={}. Added {} points.", customer.getId(), additionalPoints);
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to update loyalty points for mocked success, orderId={}", orderId, e);
+                }
             }
         }
         
