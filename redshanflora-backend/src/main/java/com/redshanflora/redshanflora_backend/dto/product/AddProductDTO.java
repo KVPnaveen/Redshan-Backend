@@ -20,7 +20,6 @@ public class AddProductDTO {
 
         private Integer stockQuantity;
 
-        private String imageUrl;
     }
 
 
