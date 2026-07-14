@@ -39,6 +39,7 @@ public class UserServiceImpl implements UserService {
                 .phone(registerRequest.getPhone())
                 .password(passwordEncoder.encode(registerRequest.getPassword()))
                 .role(Role.CUSTOMER) // Default role is CUSTOMER
+                .status("ACTIVE")
                 .build();
 
         User savedUser = userRepository.save(user);

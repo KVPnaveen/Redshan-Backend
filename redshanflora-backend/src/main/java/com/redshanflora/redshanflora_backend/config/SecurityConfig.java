@@ -31,8 +31,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
-                        .requestMatchers("/api/admin/users/register-manager").permitAll()
-                        .requestMatchers("/api/admin/users/register-employee").permitAll()
+                        .requestMatchers("/api/admin/users/**").permitAll()
                         .requestMatchers("/api/customer/**").hasRole("CUSTOMER")
                         .requestMatchers("/api/employee/**").hasRole("EMPLOYEE")
                         .requestMatchers("/api/manager/**").hasRole("MANAGER")
@@ -53,8 +52,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/login", "/api/auth/register").permitAll()
-                        .requestMatchers("/api/admin/users/register-manager").permitAll()
-                        .requestMatchers("/api/admin/users/register-employee").permitAll()
+                        .requestMatchers("/api/admin/users/**").permitAll()
                         .requestMatchers("/api/customer/**").hasRole("CUSTOMER")
                         .requestMatchers("/api/employee/**").hasRole("EMPLOYEE")
                         .requestMatchers("/api/manager/**").hasRole("MANAGER")
