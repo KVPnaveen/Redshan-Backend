@@ -27,4 +27,29 @@ public class AdminUserController {
         AdminUserResponse response = adminUserService.registerEmployee(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
+
+    @GetMapping
+    public ResponseEntity<java.util.List<AdminUserResponse>> getUsers(
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) String search) {
+        return ResponseEntity.ok(adminUserService.getUsers(role, search));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<AdminUserResponse> getUserById(@PathVariable Long id) {
+        return ResponseEntity.ok(adminUserService.getUserById(id));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<AdminUserResponse> updateUser(
+            @PathVariable Long id,
+            @Valid @RequestBody AdminUserRequest request) {
+        return ResponseEntity.ok(adminUserService.updateUser(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+        adminUserService.deleteUser(id);
+        return ResponseEntity.noContent().build();
+    }
 }

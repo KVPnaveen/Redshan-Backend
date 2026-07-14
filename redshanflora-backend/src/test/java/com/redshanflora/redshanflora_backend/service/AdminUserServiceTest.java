@@ -2,11 +2,13 @@ package com.redshanflora.redshanflora_backend.service;
 
 import com.redshanflora.redshanflora_backend.dto.admin.AdminUserRequest;
 import com.redshanflora.redshanflora_backend.dto.admin.AdminUserResponse;
+import com.redshanflora.redshanflora_backend.entity.Customer;
 import com.redshanflora.redshanflora_backend.entity.Employee;
 import com.redshanflora.redshanflora_backend.entity.Manager;
 import com.redshanflora.redshanflora_backend.entity.User;
 import com.redshanflora.redshanflora_backend.enums.Role;
 import com.redshanflora.redshanflora_backend.exception.EmailAlreadyExistsException;
+import com.redshanflora.redshanflora_backend.repository.CustomerRepository;
 import com.redshanflora.redshanflora_backend.repository.EmployeeRepository;
 import com.redshanflora.redshanflora_backend.repository.ManagerRepository;
 import com.redshanflora.redshanflora_backend.repository.UserRepository;
@@ -34,6 +36,9 @@ class AdminUserServiceTest {
 
     @Mock
     private EmployeeRepository employeeRepository;
+
+    @Mock
+    private CustomerRepository customerRepository;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -76,6 +81,7 @@ class AdminUserServiceTest {
         when(passwordEncoder.encode(request.getPassword())).thenReturn("encodedPassword123");
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
         when(managerRepository.save(any(Manager.class))).thenReturn(savedManager);
+        when(managerRepository.findByUser_Id(savedUser.getId())).thenReturn(java.util.Optional.of(savedManager));
 
         // Act
         AdminUserResponse response = adminUserService.registerManager(request);
@@ -152,6 +158,7 @@ class AdminUserServiceTest {
         when(passwordEncoder.encode(request.getPassword())).thenReturn("encodedPassword123");
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
         when(employeeRepository.save(any(Employee.class))).thenReturn(savedEmployee);
+        when(employeeRepository.findByUser_Id(savedUser.getId())).thenReturn(java.util.Optional.of(savedEmployee));
 
         // Act
         AdminUserResponse response = adminUserService.registerEmployee(request);
@@ -196,5 +203,95 @@ class AdminUserServiceTest {
         verify(passwordEncoder, never()).encode(any());
         verify(userRepository, never()).save(any());
         verify(employeeRepository, never()).save(any());
+    }
+
+    @Test
+    void testSearchUsers() {
+        // Arrange
+        User user1 = User.builder().id(1L).name("Kasun Fernando").email("kasun@example.com").role(Role.MANAGER).build();
+        User user2 = User.builder().id(2L).name("Jane Doe").email("jane@example.com").role(Role.EMPLOYEE).build();
+        when(userRepository.searchUsersByRole(Role.MANAGER, "Kasun")).thenReturn(java.util.Arrays.asList(user1, user2));
+
+        // Act
+        java.util.List<AdminUserResponse> responses = adminUserService.getUsers("MANAGER", "Kasun");
+
+        // Assert
+        assertEquals(2, responses.size());
+        verify(userRepository, times(1)).searchUsersByRole(Role.MANAGER, "Kasun");
+    }
+
+    @Test
+    void testGetUsersByRoleWithoutSearch() {
+        // Arrange
+        User user = User.builder().id(3L).name("Customer Name").email("customer@example.com").role(Role.CUSTOMER).build();
+        when(userRepository.findByRole(Role.CUSTOMER)).thenReturn(java.util.List.of(user));
+
+        // Act
+        java.util.List<AdminUserResponse> responses = adminUserService.getUsers("CUSTOMER", "");
+
+        // Assert
+        assertEquals(1, responses.size());
+        assertEquals("CUSTOMER", responses.get(0).getRole());
+        verify(userRepository, times(1)).findByRole(Role.CUSTOMER);
+    }
+
+    @Test
+    void testUpdateUser() {
+        // Arrange
+        User existingUser = User.builder()
+                .id(1L)
+                .name("Old Name")
+                .email("old@example.com")
+                .phone("123")
+                .role(Role.MANAGER)
+                .build();
+
+        AdminUserRequest request = AdminUserRequest.builder()
+                .name("New Name")
+                .email("new@example.com")
+                .phone("456")
+                .role("EMPLOYEE")
+                .build();
+
+        when(userRepository.findById(1L)).thenReturn(java.util.Optional.of(existingUser));
+        when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
+        when(userRepository.save(any(User.class))).thenReturn(existingUser);
+
+        Manager existingManager = Manager.builder().id(10L).user(existingUser).build();
+        when(managerRepository.findByUser_Id(1L)).thenReturn(java.util.Optional.of(existingManager));
+
+        Employee savedEmployee = Employee.builder().id(20L).user(existingUser).build();
+        when(employeeRepository.save(any(Employee.class))).thenReturn(savedEmployee);
+
+        // Act
+        AdminUserResponse response = adminUserService.updateUser(1L, request);
+
+        // Assert
+        assertNotNull(response);
+        assertEquals("New Name", existingUser.getName());
+        assertEquals("new@example.com", existingUser.getEmail());
+        assertEquals("456", existingUser.getPhone());
+        assertEquals(Role.EMPLOYEE, existingUser.getRole());
+
+        verify(managerRepository, times(1)).delete(existingManager);
+        verify(employeeRepository, times(1)).save(any(Employee.class));
+        verify(userRepository, times(1)).save(existingUser);
+    }
+
+    @Test
+    void testDeleteUser() {
+        // Arrange
+        User existingUser = User.builder().id(1L).name("User").email("user@example.com").build();
+        when(userRepository.findById(1L)).thenReturn(java.util.Optional.of(existingUser));
+
+        Manager existingManager = Manager.builder().id(10L).user(existingUser).build();
+        when(managerRepository.findByUser_Id(1L)).thenReturn(java.util.Optional.of(existingManager));
+
+        // Act
+        adminUserService.deleteUser(1L);
+
+        // Assert
+        verify(managerRepository, times(1)).delete(existingManager);
+        verify(userRepository, times(1)).delete(existingUser);
     }
 }
