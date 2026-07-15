@@ -37,6 +37,10 @@ public class CustomizedBouquet {
     @Column(name = "created_date", nullable = false, updatable = false)
     private Instant createdDate;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id", nullable = false, unique = true)
+    private Order order;
+
     @PrePersist
     protected void onCreate() {
         createdDate = Instant.now();
