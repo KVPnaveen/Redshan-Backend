@@ -45,6 +45,9 @@ public class Order {
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Payment payment;
 
+    @OneToOne(mappedBy = "order", fetch = FetchType.LAZY)
+    private CustomizedBouquet customizedBouquet;
+
     @PrePersist
     protected void onCreate() {
         orderDate = Instant.now();
