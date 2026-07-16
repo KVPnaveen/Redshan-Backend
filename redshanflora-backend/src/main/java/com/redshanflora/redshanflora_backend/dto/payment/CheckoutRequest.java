@@ -12,4 +12,5 @@ import java.util.List;
 public class CheckoutRequest {
     private List<CartItemDto> items;
     private String currency;
+    private Double discountAmount;
 }
