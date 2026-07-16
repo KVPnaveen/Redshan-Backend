@@ -15,6 +15,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
     boolean existsByEmail(String email);
     List<User> findByRole(Role role);
+    long countByRole(Role role);
+    long countByRoleAndRegisteredDateBetween(Role role, java.time.Instant start, java.time.Instant end);
 
     @Query("SELECT u FROM User u WHERE " +
            "LOWER(u.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +

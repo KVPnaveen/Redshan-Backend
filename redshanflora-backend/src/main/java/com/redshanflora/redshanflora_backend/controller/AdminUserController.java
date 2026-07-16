@@ -2,6 +2,7 @@ package com.redshanflora.redshanflora_backend.controller;
 
 import com.redshanflora.redshanflora_backend.dto.admin.AdminUserRequest;
 import com.redshanflora.redshanflora_backend.dto.admin.AdminUserResponse;
+import com.redshanflora.redshanflora_backend.dto.admin.AdminUserStatsResponse;
 import com.redshanflora.redshanflora_backend.service.AdminUserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,11 @@ public class AdminUserController {
     public ResponseEntity<AdminUserResponse> registerEmployee(@Valid @RequestBody AdminUserRequest request) {
         AdminUserResponse response = adminUserService.registerEmployee(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<AdminUserStatsResponse> getUserStats() {
+        return ResponseEntity.ok(adminUserService.getUserStats());
     }
 
     @GetMapping

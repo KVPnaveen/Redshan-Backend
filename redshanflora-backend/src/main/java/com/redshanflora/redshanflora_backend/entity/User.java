@@ -48,7 +48,7 @@ public class User {
     protected void onCreate() {
         registeredDate = Instant.now();
         if (status == null) {
-            status = "Active";
+            status = "ACTIVE";
         }
     }
 
