@@ -24,9 +24,7 @@ public class Order {
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "employee_id")
-    private Employee employee;
+
 
     @Column(name = "order_date", nullable = false, updatable = false)
     private Instant orderDate;
@@ -52,4 +50,6 @@ public class Order {
     protected void onCreate() {
         orderDate = Instant.now();
     }
+
+
 }

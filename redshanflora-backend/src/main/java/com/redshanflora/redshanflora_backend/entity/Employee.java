@@ -24,4 +24,7 @@ public class Employee {
 
     @Column(name = "promote_date")
     private Instant promoteDate;
+
+    @Column(name = "status")
+    private String status;
 }
