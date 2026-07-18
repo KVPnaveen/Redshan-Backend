@@ -13,6 +13,15 @@ target/
 .springBeans
 .sts4-cache
 
+# Java crash reports
+hs_err_pid*.log
+
+# Maven generated files
+target/
+
+# General log files
+*.log
+
 ### IntelliJ IDEA ###
 .idea
 *.iws
