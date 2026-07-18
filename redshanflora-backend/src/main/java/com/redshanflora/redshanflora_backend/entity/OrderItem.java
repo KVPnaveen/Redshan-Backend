@@ -5,7 +5,7 @@ import lombok.*;
 import java.math.BigDecimal;
 
 @Entity
-@Table(name = "order_item", uniqueConstraints = {@UniqueConstraint(columnNames = {"order_id", "product_id"})})
+@Table(name = "order_item")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -23,7 +23,7 @@ public class OrderItem {
     private Order order;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", nullable = false)
+    @JoinColumn(name = "product_id", nullable = true)
     private Product product;
 
     @Column(name = "quantity", nullable = false)
@@ -32,3 +32,4 @@ public class OrderItem {
     @Column(name = "price", nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
 }
+
