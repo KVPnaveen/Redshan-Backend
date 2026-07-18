@@ -2,6 +2,7 @@ package com.redshanflora.redshanflora_backend.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.time.Instant;
 
 @Entity
@@ -34,10 +35,6 @@ public class CustomizedBouquet {
     @Column(name = "wrapping", length = 100)
     private String wrapping;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", unique = true)
-    private Order order;
-
     @Column(name = "custom_bouquet_snapshot", columnDefinition = "TEXT")
     private String customBouquetSnapshot;
 
@@ -53,4 +50,3 @@ public class CustomizedBouquet {
         createdDate = Instant.now();
     }
 }
-
