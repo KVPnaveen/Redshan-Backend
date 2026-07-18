@@ -3,24 +3,27 @@ package com.redshanflora.redshanflora_backend.service.impl;
 import com.redshanflora.redshanflora_backend.dto.cart.CartItemDto;
 import com.redshanflora.redshanflora_backend.dto.payment.CheckoutRequest;
 import com.redshanflora.redshanflora_backend.dto.payment.CheckoutResponse;
+import com.redshanflora.redshanflora_backend.dto.payment.BouquetPriceBreakdown;
+import com.redshanflora.redshanflora_backend.dto.product.BouquetSnapshotDto;
 import com.redshanflora.redshanflora_backend.entity.*;
 import com.redshanflora.redshanflora_backend.enums.MainOrderStatus;
 import com.redshanflora.redshanflora_backend.enums.SubStatus;
 import com.redshanflora.redshanflora_backend.repository.*;
 import com.redshanflora.redshanflora_backend.service.PaymentService;
-import com.redshanflora.redshanflora_backend.dto.product.FlowerDesignDto;
+import com.redshanflora.redshanflora_backend.service.BouquetPricingService;
+import com.redshanflora.redshanflora_backend.service.BouquetSnapshotService;
+import com.redshanflora.redshanflora_backend.exception.CheckoutValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -38,6 +41,9 @@ public class PaymentServiceImpl implements PaymentService {
     private final OrderProcessingRepository orderProcessingRepository;
     private final OrderItemRepository orderItemRepository;
     private final PaymentRepository paymentRepository;
+    private final BouquetPricingService bouquetPricingService;
+    private final BouquetSnapshotService bouquetSnapshotService;
+    private final CustomizedBouquetRepository customizedBouquetRepository;
 
     @Value("${payhere.merchant-id}")
     private String merchantId;
@@ -45,103 +51,95 @@ public class PaymentServiceImpl implements PaymentService {
     @Value("${payhere.secret-key}")
     private String secretKey;
 
-    // In‑memory map to correlate PayHere status callbacks with order IDs (for local testing)
     private static final ConcurrentHashMap<String, Integer> orderStatusMap = new ConcurrentHashMap<>();
+    
+    private static final int MONEY_SCALE = 2;
+    private static final RoundingMode MONEY_ROUNDING = RoundingMode.HALF_UP;
 
     @Override
+    @Transactional
     public CheckoutResponse createPayment(CheckoutRequest request) {
         log.info("Received checkout request with currency={}", request.getCurrency());
         String currency = request.getCurrency() != null ? request.getCurrency() : "LKR";
-        double totalAmount = 0.0;
+
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            throw new CheckoutValidationException("Checkout items list cannot be empty.");
+        }
+
+        // Validate that there is at most one custom bouquet in the request
+        long customBouquetCount = request.getItems().stream()
+                .filter(item -> item.getIsCustom() != null && item.getIsCustom())
+                .count();
+        if (customBouquetCount > 1) {
+            throw new CheckoutValidationException("Checkout failed: an order can contain at most one custom bouquet.");
+        }
+
+        // 1. Validate all items and calculate totals first
+        BigDecimal totalAmount = BigDecimal.ZERO;
+
         for (CartItemDto item : request.getItems()) {
-            double itemPrice = 0.0;
+            BigDecimal itemPrice;
             if (item.getIsCustom() != null && item.getIsCustom()) {
-                double customBase = 13500.00; // Crystal Vase Base (in LKR)
-                double bouquetDesignPrice = 0.0;
-                if (item.getBouquetDesign() != null) {
-                    String style = item.getBouquetDesign().getStyle();
-                    if ("spiral-handtied".equalsIgnoreCase(style)) {
-                        bouquetDesignPrice += 4500.00;
-                    } else if ("classic-dome".equalsIgnoreCase(style)) {
-                        bouquetDesignPrice += 3000.00;
-                    }
-                    String wrapping = item.getBouquetDesign().getWrappingId();
-                    if ("kraft-paper".equalsIgnoreCase(wrapping)) {
-                        bouquetDesignPrice += 1200.00;
-                    }
-                    String ribbon = item.getBouquetDesign().getRibbonId();
-                    if ("velvet-ribbon".equalsIgnoreCase(ribbon)) {
-                        bouquetDesignPrice += 2100.00;
-                    }
-                    List<FlowerDesignDto> flowers = item.getBouquetDesign().getFlowers();
-                    if (flowers != null) {
-                        for (FlowerDesignDto flower : flowers) {
-                            String stemId = flower.getStemId();
-                            switch (stemId) {
-                                case "silver-eucalyptus":
-                                    bouquetDesignPrice += 2400.00; break;
-                                case "emerald-fern":
-                                    bouquetDesignPrice += 1800.00; break;
-                                case "velvet-ribbon":
-                                    bouquetDesignPrice += 2100.00; break;
-                                case "kraft-paper":
-                                    bouquetDesignPrice += 1200.00; break;
-                                case "spiral-handtied":
-                                    bouquetDesignPrice += 4500.00; break;
-                                case "classic-dome":
-                                    bouquetDesignPrice += 3000.00; break;
-                                default:
-                                    try {
-                                        Long prodId = Long.parseLong(stemId);
-                                        Product product = productRepository.findById(prodId).orElse(null);
-                                        if (product != null) {
-                                            bouquetDesignPrice += product.getPrice().doubleValue();
-                                        } else {
-                                            bouquetDesignPrice += 1500.00;
-                                        }
-                                    } catch (NumberFormatException e) {
-                                        bouquetDesignPrice += 1500.00;
-                                    }
-                            }
-                        }
-                    }
-                }
-                itemPrice = customBase + bouquetDesignPrice;
+                // Delegate pricing and validation of custom bouquet
+                BouquetPriceBreakdown breakdown = bouquetPricingService.validateAndCalculatePrice(item.getBouquetDesign());
+                itemPrice = breakdown.getGrandTotal();
             } else {
-                Product product = productRepository.findById(item.getId()).orElse(null);
-                if (product != null) {
-                    itemPrice = product.getPrice().doubleValue();
-                } else {
-                    itemPrice = item.getNumericPrice() != null ? item.getNumericPrice() : 0.0;
+                if (item.getId() == null) {
+                    throw new CheckoutValidationException("Standard product ID is missing.");
+                }
+                Product product = productRepository.findById(item.getId())
+                        .orElseThrow(() -> new CheckoutValidationException("Product not found with ID: " + item.getId()));
+                itemPrice = product.getPrice();
+                if (itemPrice == null) {
+                    throw new CheckoutValidationException("Product price is missing in the database: " + item.getId());
+                }
+                if (itemPrice.compareTo(BigDecimal.ZERO) < 0) {
+                    throw new CheckoutValidationException("Product price is negative in the database: " + item.getId());
                 }
             }
+
             int quantity = item.getQuantity() != null ? item.getQuantity() : 1;
-            totalAmount += itemPrice * quantity;
+            if (quantity <= 0) {
+                throw new CheckoutValidationException("Quantity must be a positive integer.");
+            }
+            totalAmount = totalAmount.add(itemPrice.multiply(BigDecimal.valueOf(quantity)));
         }
-        totalAmount = Math.round(totalAmount * 100.0) / 100.0;
-        // Resolve customer (logged‑in or fallback dummy)
+
+        // Apply discount safely
+        BigDecimal discount = request.getDiscountAmount() != null ? BigDecimal.valueOf(request.getDiscountAmount()) : BigDecimal.ZERO;
+        totalAmount = totalAmount.subtract(discount);
+        if (totalAmount.compareTo(BigDecimal.ZERO) < 0) {
+            totalAmount = BigDecimal.ZERO;
+        }
+
+        BigDecimal authoritativeTotal = totalAmount.setScale(MONEY_SCALE, MONEY_ROUNDING);
+        String payHereAmount = authoritativeTotal.toPlainString();
+
+        // 2. Resolve Customer record
         Customer customer = resolveCustomer();
-        // Persist Order
+
+        // 3. Persist Order in database
         Order order = Order.builder()
                 .customer(customer)
-                .totalAmount(BigDecimal.valueOf(totalAmount))
+                .totalAmount(authoritativeTotal)
                 .orderStatus(MainOrderStatus.ORDER_CONFIRMED)
                 .build();
         order = orderRepository.save(order);
-        // Persist OrderProcessing
+
+        // 4. Persist OrderProcessing in database
         OrderProcessing processing = OrderProcessing.builder()
                 .order(order)
                 .mainStatus(MainOrderStatus.PROCESSING)
                 .subStatus(SubStatus.START)
                 .build();
         orderProcessingRepository.save(processing);
-        // Persist OrderItems
+
+        // 5. Persist OrderItems in database (for standard products only)
         for (CartItemDto item : request.getItems()) {
-            Product product = null;
-            if (item.getId() != null) {
-                product = productRepository.findById(item.getId()).orElse(null);
-            }
-            if (product != null) {
+            if (item.getIsCustom() == null || !item.getIsCustom()) {
+                Product product = productRepository.findById(item.getId())
+                        .orElseThrow(() -> new CheckoutValidationException("Product not found with ID: " + item.getId()));
+
                 OrderItem orderItem = OrderItem.builder()
                         .order(order)
                         .product(product)
@@ -151,25 +149,54 @@ public class PaymentServiceImpl implements PaymentService {
                 orderItemRepository.save(orderItem);
             }
         }
-        // Persist Payment with PENDING status
+
+        // 5b. Persist CustomizedBouquet (for custom bouquet if present)
+        CartItemDto customItem = request.getItems().stream()
+                .filter(item -> item.getIsCustom() != null && item.getIsCustom())
+                .findFirst().orElse(null);
+
+        if (customItem != null) {
+            BouquetPriceBreakdown breakdown = bouquetPricingService.validateAndCalculatePrice(customItem.getBouquetDesign());
+            BouquetSnapshotDto snapshotDto = bouquetSnapshotService.buildSnapshot(customItem.getBouquetDesign(), breakdown);
+            String snapshotJson = bouquetSnapshotService.serializeSnapshot(snapshotDto);
+
+            // Check if customized bouquet already exists for this order
+            CustomizedBouquet customizedBouquet = customizedBouquetRepository.findByOrder(order).orElse(null);
+            if (customizedBouquet == null) {
+                customizedBouquet = CustomizedBouquet.builder()
+                        .customer(customer)
+                        .order(order)
+                        .build();
+            }
+            customizedBouquet.setBouquetStyle(customItem.getBouquetDesign().getStyle());
+            customizedBouquet.setWrapping(customItem.getBouquetDesign().getWrappingId());
+            customizedBouquet.setCustomBouquetSnapshot(snapshotJson);
+
+            customizedBouquetRepository.save(customizedBouquet);
+        }
+
+        // 6. Persist Payment with PENDING status in database
         Payment payment = Payment.builder()
                 .order(order)
                 .paymentMethod("PayHere")
                 .paymentStatus("PENDING")
-                .amount(BigDecimal.valueOf(totalAmount))
+                .amount(authoritativeTotal)
                 .build();
         paymentRepository.save(payment);
-        // Generate PayHere hash
+
         String orderIdStr = "ORDER-" + order.getId();
-        String hash = generatePayHereHash(merchantId, orderIdStr, totalAmount, currency, secretKey);
+        String hash = generatePayHereHash(merchantId, orderIdStr, payHereAmount, currency, secretKey);
+        
         String itemsDescription = request.getItems().stream()
-                .map(i -> i.getTitle() + " x" + i.getQuantity())
+                .map(item -> item.getTitle() + " x" + item.getQuantity())
                 .collect(Collectors.joining(", "));
-        log.info("Initialized secure payment session and saved Order in DB: orderId={}, amount={}, hash={}", orderIdStr, totalAmount, hash);
+
+        log.info("Initialized secure payment session and saved Order in DB: orderId={}, amount={}, hash={}", orderIdStr, payHereAmount, hash);
+
         return CheckoutResponse.builder()
                 .merchantId(merchantId)
                 .orderId(orderIdStr)
-                .amount(totalAmount)
+                .amount(Double.valueOf(payHereAmount))
                 .currency(currency)
                 .hash(hash)
                 .itemsName(itemsDescription)
@@ -177,7 +204,6 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private Customer resolveCustomer() {
-        // Attempt to resolve the logged‑in user; fall back to the first customer record.
         var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         Customer customer = null;
         if (auth != null && auth.isAuthenticated() && !(auth instanceof org.springframework.security.authentication.AnonymousAuthenticationToken)) {
@@ -277,9 +303,8 @@ public class PaymentServiceImpl implements PaymentService {
         return ResponseEntity.ok(Map.of("status", status));
     }
 
-    private String generatePayHereHash(String merchantId, String orderId, double amount, String currency, String secretKey) {
+    private String generatePayHereHash(String merchantId, String orderId, String formattedAmount, String currency, String secretKey) {
         String hashedSecret = md5(secretKey);
-        String formattedAmount = String.format(Locale.US, "%.2f", amount);
         String hashString = merchantId + orderId + formattedAmount + currency + hashedSecret;
         return md5(hashString);
     }

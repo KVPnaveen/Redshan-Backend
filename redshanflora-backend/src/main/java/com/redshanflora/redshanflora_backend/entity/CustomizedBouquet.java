@@ -34,6 +34,13 @@ public class CustomizedBouquet {
     @Column(name = "wrapping", length = 100)
     private String wrapping;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id", unique = true)
+    private Order order;
+
+    @Column(name = "custom_bouquet_snapshot", columnDefinition = "TEXT")
+    private String customBouquetSnapshot;
+
     @Column(name = "created_date", nullable = false, updatable = false)
     private Instant createdDate;
 
@@ -46,3 +53,4 @@ public class CustomizedBouquet {
         createdDate = Instant.now();
     }
 }
+
