@@ -87,4 +87,36 @@ public class JwtService {
         }
         return Keys.hmacShaKeyFor(keyBytes);
     }
+
+    public String generatePasswordResetToken(Long userId) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("purpose", "password_reset");
+        claims.put("userId", userId);
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(String.valueOf(userId))
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + 5 * 60 * 1000)) // 5 minutes
+                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public boolean validatePasswordResetToken(String token) {
+        try {
+            Claims claims = extractAllClaims(token);
+            String purpose = claims.get("purpose", String.class);
+            return "password_reset".equals(purpose) && !isTokenExpired(token);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public Long extractUserIdFromResetToken(String token) {
+        Claims claims = extractAllClaims(token);
+        Object userIdObj = claims.get("userId");
+        if (userIdObj instanceof Number) {
+            return ((Number) userIdObj).longValue();
+        }
+        return Long.parseLong(claims.getSubject());
+    }
 }
