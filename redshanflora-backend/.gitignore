@@ -42,3 +42,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Local secrets configuration
+local-secrets.properties
+**/local-secrets.properties
