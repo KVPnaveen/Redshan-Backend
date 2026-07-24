@@ -2,6 +2,7 @@ package com.redshanflora.redshanflora_backend.service.impl;
 
 import com.redshanflora.redshanflora_backend.dto.admin.AdminUserRequest;
 import com.redshanflora.redshanflora_backend.dto.admin.AdminUserResponse;
+import com.redshanflora.redshanflora_backend.dto.admin.AdminUserStatsResponse;
 import com.redshanflora.redshanflora_backend.entity.Customer;
 import com.redshanflora.redshanflora_backend.entity.Employee;
 import com.redshanflora.redshanflora_backend.entity.Manager;
@@ -281,5 +282,42 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
 
         return builder.build();
+
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AdminUserStatsResponse getUserStats() {
+        long totalCustomers = userRepository.countByRole(Role.CUSTOMER);
+        long totalManagers = userRepository.countByRole(Role.MANAGER);
+        long totalEmployees = userRepository.countByRole(Role.EMPLOYEE);
+
+        // Get start and end of this month and last month
+        java.time.ZonedDateTime now = java.time.ZonedDateTime.now(java.time.ZoneOffset.UTC);
+        
+        java.time.ZonedDateTime startOfThisMonth = now.withDayOfMonth(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        java.time.ZonedDateTime startOfLastMonth = startOfThisMonth.minusMonths(1);
+
+        Instant thisMonthStartInstant = startOfThisMonth.toInstant();
+        Instant lastMonthStartInstant = startOfLastMonth.toInstant();
+        Instant nowInstant = now.toInstant();
+
+        long customersThisMonth = userRepository.countByRoleAndRegisteredDateBetween(Role.CUSTOMER, thisMonthStartInstant, nowInstant);
+        long customersLastMonth = userRepository.countByRoleAndRegisteredDateBetween(Role.CUSTOMER, lastMonthStartInstant, thisMonthStartInstant);
+
+        double percentageIncrease = 0.0;
+        if (customersLastMonth > 0) {
+            percentageIncrease = ((double) (customersThisMonth - customersLastMonth) / customersLastMonth) * 100.0;
+        } else if (customersThisMonth > 0) {
+            percentageIncrease = 100.0;
+        }
+
+        return AdminUserStatsResponse.builder()
+                .totalCustomers(totalCustomers)
+                .customerIncreasePercentage(percentageIncrease)
+                .totalManagers(totalManagers)
+                .totalEmployees(totalEmployees)
+                .build();
+
     }
 }
