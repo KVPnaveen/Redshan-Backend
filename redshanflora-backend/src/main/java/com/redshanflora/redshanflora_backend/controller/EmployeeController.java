@@ -1,13 +1,13 @@
 package com.redshanflora.redshanflora_backend.controller;
 
+import com.redshanflora.redshanflora_backend.dto.employee.AssignOrderRequestDTO;
+import com.redshanflora.redshanflora_backend.dto.employee.AssignOrderResponseDTO;
+import com.redshanflora.redshanflora_backend.dto.employee.AssignedEmployeeDTO;
 import com.redshanflora.redshanflora_backend.dto.employee.NotAssignedEmployeeDTO;
 import com.redshanflora.redshanflora_backend.service.EmployeeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -24,5 +24,18 @@ public class EmployeeController {
 
         return ResponseEntity.ok(employeeService.getNotAssignedEmployees());
 
+    }
+
+    @PostMapping("/assign-order")
+    public ResponseEntity<AssignOrderResponseDTO> assignOrder(
+            @RequestBody AssignOrderRequestDTO request) {
+
+        return ResponseEntity.ok(employeeService.assignOrder(request));
+    }
+
+    @GetMapping("/assigned")
+    public ResponseEntity<List<AssignedEmployeeDTO>> getAssignedEmployees() {
+
+        return ResponseEntity.ok(employeeService.getAssignedEmployees());
     }
 }

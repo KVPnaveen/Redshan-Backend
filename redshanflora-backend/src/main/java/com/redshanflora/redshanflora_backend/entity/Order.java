@@ -46,6 +46,14 @@ public class Order {
     @OneToOne(mappedBy = "order", fetch = FetchType.LAZY)
     private CustomizedBouquet customizedBouquet;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "employee_id")
+    private Employee employee;
+
+    @Column(name = "working_status", nullable = false)
+    @Builder.Default
+    private String workingStatus = "Not Yet Start Working";
+
     @PrePersist
     protected void onCreate() {
         orderDate = Instant.now();
