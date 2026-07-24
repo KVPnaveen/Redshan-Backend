@@ -65,6 +65,21 @@ class RedshanfloraBackendApplicationTests {
 		}
 	}
 
+	@Autowired
+	private javax.sql.DataSource dataSource;
+
+	@Test
+	void testPrintConstraints() throws java.sql.SQLException {
+		try (java.sql.Connection conn = dataSource.getConnection()) {
+			try (java.sql.Statement stmt = conn.createStatement();
+				 java.sql.ResultSet rs = stmt.executeQuery("SELECT cc.check_clause FROM information_schema.check_constraints cc WHERE cc.constraint_name = 'user_status_check'")) {
+				while (rs.next()) {
+					System.out.println("CONSTRAINT CLAUSE: " + rs.getString("check_clause"));
+				}
+			}
+		}
+	}
+
 	@Test
 	void contextLoads() {
 	}

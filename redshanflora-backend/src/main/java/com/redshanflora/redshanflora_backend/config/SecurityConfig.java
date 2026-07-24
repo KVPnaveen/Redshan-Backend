@@ -30,7 +30,11 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+
+                       
+
                         .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/forgot-password/**").permitAll()
+
                         .requestMatchers("/api/admin/users/**").permitAll()
                         .requestMatchers("/api/customer/**").hasRole("CUSTOMER")
                         .requestMatchers("/api/employee/**").hasRole("EMPLOYEE")
@@ -51,7 +55,11 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+
+                        
+
                         .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/forgot-password/**").permitAll()
+
                         .requestMatchers("/api/admin/users/**").permitAll()
                         .requestMatchers("/api/customer/**").hasRole("CUSTOMER")
                         .requestMatchers("/api/employee/**").hasRole("EMPLOYEE")
