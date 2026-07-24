@@ -161,6 +161,30 @@ public class ProductServiceImpl implements ProductService {
         productRepository.deleteById(id);
     }
 
+    private String convertToAbsoluteUrl(String path) {
+        if (path == null || path.trim().isEmpty()) {
+            return null;
+        }
+        String normalized = path.trim().replace("\\", "/");
+        if (normalized.startsWith("http://") || normalized.startsWith("https://")) {
+            return normalized;
+        }
+        normalized = normalized.replaceAll("/+", "/");
+        if (!normalized.startsWith("/")) {
+            normalized = "/" + normalized;
+        }
+        String baseUrl;
+        try {
+            baseUrl = org.springframework.web.servlet.support.ServletUriComponentsBuilder
+                    .fromCurrentContextPath()
+                    .build()
+                    .toUriString();
+        } catch (Exception e) {
+            baseUrl = "http://localhost:8080";
+        }
+        return baseUrl + normalized;
+    }
+
     private ProductResponse mapToResponse(Product product) {
         return ProductResponse.builder()
                 .id(product.getId())
@@ -172,8 +196,8 @@ public class ProductServiceImpl implements ProductService {
                 .description(product.getDescription())
                 .price(product.getPrice())
                 .stockQuantity(product.getStockQuantity())
-                .imageUrl(product.getImageUrl())
-                .modelUrl(product.getModelUrl())
+                .imageUrl(convertToAbsoluteUrl(product.getImageUrl()))
+                .modelUrl(convertToAbsoluteUrl(product.getModelUrl()))
                 .discountPercentage(product.getDiscountPercentage())
                 .category(CategoryResponse.builder()
                         .id(product.getCategory().getId())

@@ -17,7 +17,9 @@ public class AdminUserResponse {
     private String phone;
     private String role;
     private Instant registeredDate;
+    private String status;
     private Long managerId;
     private Long employeeId;
+    private Long customerId;
     private Instant promoteDate;
 }
