@@ -17,4 +17,9 @@ public class OrderController {
     public List<OrderListDto> getAllOrders() {
         return orderService.getAllOrders();
     }
+
+    @GetMapping("/unassigned")
+    public List<OrderListDto> getUnassignedOrders() {
+        return orderService.getUnassignedOrders();
+    }
 }

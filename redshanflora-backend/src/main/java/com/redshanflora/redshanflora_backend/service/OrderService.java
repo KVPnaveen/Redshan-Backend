@@ -7,5 +7,5 @@ import java.util.List;
 public interface OrderService {
 
     List<OrderListDto> getAllOrders();
-
+    List<OrderListDto> getUnassignedOrders();
 }
