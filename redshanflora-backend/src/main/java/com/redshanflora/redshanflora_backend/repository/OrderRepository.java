@@ -13,6 +13,7 @@ import java.util.List;
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
     List<Order> findByEmployeeIsNotNull();
+    List<Order> findByEmployeeIsNull();
 
     List<Order> findByCustomerOrderByOrderDateDesc(Customer customer);
     Optional<Order> findByIdAndCustomer(Long id, Customer customer);

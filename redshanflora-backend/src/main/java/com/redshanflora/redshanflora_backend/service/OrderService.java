@@ -11,6 +11,9 @@ public interface OrderService {
     // Incoming team member's function
     List<OrderListDto> getAllOrders();
 
+    List<OrderListDto> getUnassignedOrders();
+
+
     // Your customer order functions
     List<OrderSummaryDto> getCustomerOrders();
 
@@ -20,4 +23,5 @@ public interface OrderService {
     List<OrderSummaryDto> getAllOrdersForAdmin();
 
     OrderDetailsDto getAdminOrderDetails(Long orderId);
+
 }
