@@ -27,13 +27,11 @@ public class AdminUserController {
     public ResponseEntity<AdminUserResponse> registerEmployee(@Valid @RequestBody AdminUserRequest request) {
         AdminUserResponse response = adminUserService.registerEmployee(request);
         return new ResponseEntity<>(response, HttpStatus.CREATED);
-    }
 
     @GetMapping("/stats")
     public ResponseEntity<AdminUserStatsResponse> getUserStats() {
         return ResponseEntity.ok(adminUserService.getUserStats());
-    }
-
+  
     @GetMapping
     public ResponseEntity<java.util.List<AdminUserResponse>> getUsers(
             @RequestParam(required = false) String role,

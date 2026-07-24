@@ -47,8 +47,12 @@ public class User {
     @PrePersist
     protected void onCreate() {
         registeredDate = Instant.now();
-        if (status == null) {
+
+
+        if (status == null || status.isBlank()) {
             status = "ACTIVE";
+        } else {
+            status = status.trim().toUpperCase();
         }
     }
 

@@ -11,5 +11,7 @@ public interface AdminUserService {
     AdminUserResponse getUserById(Long id);
     AdminUserResponse updateUser(Long id, AdminUserRequest request);
     void deleteUser(Long id);
+
     AdminUserStatsResponse getUserStats();
+
 }

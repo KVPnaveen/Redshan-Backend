@@ -24,9 +24,7 @@ public class Order {
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "employee_id")
-    private Employee employee;
+
 
     @Column(name = "order_date", nullable = false, updatable = false)
     private Instant orderDate;
@@ -45,8 +43,22 @@ public class Order {
     @OneToOne(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Payment payment;
 
+    @OneToOne(mappedBy = "order", fetch = FetchType.LAZY)
+    private CustomizedBouquet customizedBouquet;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "employee_id")
+    private Employee employee;
+
+    @Column(name = "working_status", nullable = false)
+    @Builder.Default
+    private String workingStatus = "Not Yet Start Working";
+
     @PrePersist
     protected void onCreate() {
         orderDate = Instant.now();
     }
+
+
 }
+

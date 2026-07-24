@@ -282,6 +282,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
 
         return builder.build();
+
     }
 
     @Override
@@ -317,5 +318,6 @@ public class AdminUserServiceImpl implements AdminUserService {
                 .totalManagers(totalManagers)
                 .totalEmployees(totalEmployees)
                 .build();
+
     }
 }
