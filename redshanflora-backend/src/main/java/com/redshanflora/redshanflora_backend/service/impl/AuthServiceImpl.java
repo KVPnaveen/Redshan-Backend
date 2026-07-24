@@ -43,6 +43,7 @@ public class AuthServiceImpl implements AuthService {
                 .phone(request.getPhone())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .role(Role.CUSTOMER)
+                .status("ACTIVE")
                 .build();
 
         User savedUser;

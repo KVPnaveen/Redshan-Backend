@@ -35,8 +35,11 @@ public class User {
     @Column(nullable = false, length = 20)
     private Role role;
 
-    @Column(name = "registered_date", nullable = false, updatable = false)
+    @Column(name = "registered_date", nullable = false)
     private Instant registeredDate;
+
+    @Column(nullable = true, length = 20)
+    private String status;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private Customer customer;
@@ -44,6 +47,12 @@ public class User {
     @PrePersist
     protected void onCreate() {
         registeredDate = Instant.now();
+
+        if (status == null || status.isBlank()) {
+            status = "ACTIVE";
+        } else {
+            status = status.trim().toUpperCase();
+        }
     }
 
     public String getFirstName() {
