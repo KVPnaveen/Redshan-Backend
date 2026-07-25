@@ -99,6 +99,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
 
+
     @Override
     public List<OrderListDto> getUnassignedOrders() {
 
@@ -221,6 +222,7 @@ public class OrderServiceImpl implements OrderService {
                     .build();
         }
 
+
         private OrderDetailsDto mapToDetailsDto (Order order){
 
             List<OrderItem> orderItems = orderItemRepository.findByOrder(order);
@@ -299,4 +301,5 @@ public class OrderServiceImpl implements OrderService {
             return builder.build();
 
         }
+
     }
