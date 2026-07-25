@@ -99,6 +99,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
 
+
     @Override
     public List<OrderListDto> getUnassignedOrders() {
 
@@ -132,171 +133,173 @@ public class OrderServiceImpl implements OrderService {
         }
 
         return dtoList;
-
-    /*
-     * Finds the currently authenticated customer.
-     */
-    private Customer getAuthenticatedCustomer() {
-
-        var authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        if (authentication == null
-                || !authentication.isAuthenticated()
-                || authentication instanceof AnonymousAuthenticationToken) {
-
-            throw new CheckoutValidationException(
-                    "Access denied: User is not authenticated.");
-        }
-
-        String email = authentication.getName();
-
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new CheckoutValidationException(
-                        "User not found: " + email));
-
-        return customerRepository.findByUser(user)
-                .orElseThrow(() -> new CheckoutValidationException(
-                        "Customer profile not found for user: " + email));
     }
+        /*
+         * Finds the currently authenticated customer.
+         */
+        private Customer getAuthenticatedCustomer () {
 
-    @Override
-    public List<OrderSummaryDto> getCustomerOrders() {
+            var authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        Customer customer = getAuthenticatedCustomer();
+            if (authentication == null
+                    || !authentication.isAuthenticated()
+                    || authentication instanceof AnonymousAuthenticationToken) {
 
-        List<Order> orders = orderRepository.findByCustomerOrderByOrderDateDesc(customer);
-
-        return orders.stream()
-                .map(this::mapToSummaryDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public OrderDetailsDto getCustomerOrderDetails(Long orderId) {
-
-        Customer customer = getAuthenticatedCustomer();
-
-        Order order = orderRepository.findByIdAndCustomer(orderId, customer)
-                .orElseThrow(() -> new CheckoutValidationException(
-                        "Order not found or access denied."));
-
-        return mapToDetailsDto(order);
-    }
-
-    @Override
-    public List<OrderSummaryDto> getAllOrdersForAdmin() {
-
-        List<Order> orders = orderRepository.findAll(
-                Sort.by(Sort.Direction.DESC, "orderDate"));
-
-        return orders.stream()
-                .map(this::mapToSummaryDto)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public OrderDetailsDto getAdminOrderDetails(Long orderId) {
-
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new CheckoutValidationException(
-                        "Order not found with ID: " + orderId));
-
-        return mapToDetailsDto(order);
-    }
-
-    private OrderSummaryDto mapToSummaryDto(Order order) {
-
-        return OrderSummaryDto.builder()
-                .orderId(order.getId())
-                .orderDate(order.getOrderDate())
-                .totalAmount(order.getTotalAmount())
-                .orderStatus(
-                        order.getOrderStatus() != null
-                                ? order.getOrderStatus().name()
-                                : "PENDING")
-                .paymentStatus(
-                        order.getPayment() != null
-                                ? order.getPayment().getPaymentStatus()
-                                : "PENDING")
-                .build();
-    }
-
-    private OrderDetailsDto mapToDetailsDto(Order order) {
-
-        List<OrderItem> orderItems = orderItemRepository.findByOrder(order);
-
-        List<OrderItemResponseDto> itemDtos = orderItems.stream()
-                .map(item -> {
-
-                    Product product = item.getProduct();
-
-                    BigDecimal price = item.getPrice() != null
-                            ? item.getPrice()
-                            : BigDecimal.ZERO;
-
-                    int quantity = item.getQuantity();
-
-                    return OrderItemResponseDto.builder()
-                            .productId(
-                                    product != null ? product.getId() : null)
-                            .productName(
-                                    product != null
-                                            ? product.getProductName()
-                                            : "Unknown Product")
-                            .imageUrl(
-                                    product != null
-                                            ? product.getImageUrl()
-                                            : null)
-                            .quantity(quantity)
-                            .price(price)
-                            .lineTotal(
-                                    price.multiply(
-                                            BigDecimal.valueOf(quantity)))
-                            .build();
-                })
-                .collect(Collectors.toList());
-
-        Customer customer = order.getCustomer();
-        User user = customer != null ? customer.getUser() : null;
-
-        OrderDetailsDto.OrderDetailsDtoBuilder builder = OrderDetailsDto.builder()
-                .orderId(order.getId())
-                .orderDate(order.getOrderDate())
-                .totalAmount(order.getTotalAmount())
-                .orderStatus(
-                        order.getOrderStatus() != null
-                                ? order.getOrderStatus().name()
-                                : "PENDING")
-                .paymentStatus(
-                        order.getPayment() != null
-                                ? order.getPayment()
-                                        .getPaymentStatus()
-                                : "PENDING")
-                .customerName(
-                        user != null ? user.getName() : "Guest")
-                .customerEmail(
-                        user != null ? user.getEmail() : "")
-                .items(itemDtos);
-
-        if (order.getCustomizedBouquet() != null) {
-
-            String snapshotJson = order.getCustomizedBouquet()
-                    .getCustomBouquetSnapshot();
-
-            BouquetSnapshotDto snapshot = bouquetSnapshotService.deserializeSnapshot(
-                    snapshotJson);
-
-            if (snapshot != null
-                    && (snapshot.getBouquetStyle() == null
-                            || snapshot.getBouquetStyle().trim().isEmpty())) {
-
-                snapshot.setBouquetStyle("ROUND");
+                throw new CheckoutValidationException(
+                        "Access denied: User is not authenticated.");
             }
 
-            builder.bouquetSnapshot(snapshot);
+            String email = authentication.getName();
+
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new CheckoutValidationException(
+                            "User not found: " + email));
+
+            return customerRepository.findByUser(user)
+                    .orElseThrow(() -> new CheckoutValidationException(
+                            "Customer profile not found for user: " + email));
         }
 
-        return builder.build();
+        @Override
+        public List<OrderSummaryDto> getCustomerOrders () {
+
+            Customer customer = getAuthenticatedCustomer();
+
+            List<Order> orders = orderRepository.findByCustomerOrderByOrderDateDesc(customer);
+
+            return orders.stream()
+                    .map(this::mapToSummaryDto)
+                    .collect(Collectors.toList());
+        }
+
+        @Override
+        public OrderDetailsDto getCustomerOrderDetails (Long orderId){
+
+            Customer customer = getAuthenticatedCustomer();
+
+            Order order = orderRepository.findByIdAndCustomer(orderId, customer)
+                    .orElseThrow(() -> new CheckoutValidationException(
+                            "Order not found or access denied."));
+
+            return mapToDetailsDto(order);
+        }
+
+        @Override
+        public List<OrderSummaryDto> getAllOrdersForAdmin () {
+
+            List<Order> orders = orderRepository.findAll(
+                    Sort.by(Sort.Direction.DESC, "orderDate"));
+
+            return orders.stream()
+                    .map(this::mapToSummaryDto)
+                    .collect(Collectors.toList());
+        }
+
+        @Override
+        public OrderDetailsDto getAdminOrderDetails (Long orderId){
+
+            Order order = orderRepository.findById(orderId)
+                    .orElseThrow(() -> new CheckoutValidationException(
+                            "Order not found with ID: " + orderId));
+
+            return mapToDetailsDto(order);
+        }
+
+        private OrderSummaryDto mapToSummaryDto (Order order){
+
+            return OrderSummaryDto.builder()
+                    .orderId(order.getId())
+                    .orderDate(order.getOrderDate())
+                    .totalAmount(order.getTotalAmount())
+                    .orderStatus(
+                            order.getOrderStatus() != null
+                                    ? order.getOrderStatus().name()
+                                    : "PENDING")
+                    .paymentStatus(
+                            order.getPayment() != null
+                                    ? order.getPayment().getPaymentStatus()
+                                    : "PENDING")
+                    .build();
+        }
+
+
+        private OrderDetailsDto mapToDetailsDto (Order order){
+
+            List<OrderItem> orderItems = orderItemRepository.findByOrder(order);
+
+            List<OrderItemResponseDto> itemDtos = orderItems.stream()
+                    .map(item -> {
+
+                        Product product = item.getProduct();
+
+                        BigDecimal price = item.getPrice() != null
+                                ? item.getPrice()
+                                : BigDecimal.ZERO;
+
+                        int quantity = item.getQuantity();
+
+                        return OrderItemResponseDto.builder()
+                                .productId(
+                                        product != null ? product.getId() : null)
+                                .productName(
+                                        product != null
+                                                ? product.getProductName()
+                                                : "Unknown Product")
+                                .imageUrl(
+                                        product != null
+                                                ? product.getImageUrl()
+                                                : null)
+                                .quantity(quantity)
+                                .price(price)
+                                .lineTotal(
+                                        price.multiply(
+                                                BigDecimal.valueOf(quantity)))
+                                .build();
+                    })
+                    .collect(Collectors.toList());
+
+            Customer customer = order.getCustomer();
+            User user = customer != null ? customer.getUser() : null;
+
+            OrderDetailsDto.OrderDetailsDtoBuilder builder = OrderDetailsDto.builder()
+                    .orderId(order.getId())
+                    .orderDate(order.getOrderDate())
+                    .totalAmount(order.getTotalAmount())
+                    .orderStatus(
+                            order.getOrderStatus() != null
+                                    ? order.getOrderStatus().name()
+                                    : "PENDING")
+                    .paymentStatus(
+                            order.getPayment() != null
+                                    ? order.getPayment()
+                                    .getPaymentStatus()
+                                    : "PENDING")
+                    .customerName(
+                            user != null ? user.getName() : "Guest")
+                    .customerEmail(
+                            user != null ? user.getEmail() : "")
+                    .items(itemDtos);
+
+            if (order.getCustomizedBouquet() != null) {
+
+                String snapshotJson = order.getCustomizedBouquet()
+                        .getCustomBouquetSnapshot();
+
+                BouquetSnapshotDto snapshot = bouquetSnapshotService.deserializeSnapshot(
+                        snapshotJson);
+
+                if (snapshot != null
+                        && (snapshot.getBouquetStyle() == null
+                        || snapshot.getBouquetStyle().trim().isEmpty())) {
+
+                    snapshot.setBouquetStyle("ROUND");
+                }
+
+                builder.bouquetSnapshot(snapshot);
+            }
+
+            return builder.build();
+
+        }
 
     }
-}

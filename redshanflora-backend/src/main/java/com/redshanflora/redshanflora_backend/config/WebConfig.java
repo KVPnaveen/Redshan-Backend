@@ -18,14 +18,10 @@ public class WebConfig implements WebMvcConfigurer {
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
 
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations(
-                        "file:///C:/Users/Windows/Documents/GitHub/Redshan-Backend/redshanflora-backend/uploads/"
-                );
+                .addResourceLocations("file:uploads/");
 
         registry.addResourceHandler("/models/**")
-                .addResourceLocations(
-                        "file:///C:/Users/Windows/Documents/GitHub/Redshan-Backend/redshanflora-backend/uploads/models/"
-                );
+                .addResourceLocations("file:uploads/models/");
     }
 }
 
