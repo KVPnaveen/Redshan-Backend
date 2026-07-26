@@ -3,6 +3,7 @@ package com.redshanflora.redshanflora_backend.service;
 import com.redshanflora.redshanflora_backend.dto.OrderListDto;
 import com.redshanflora.redshanflora_backend.dto.order.OrderDetailsDto;
 import com.redshanflora.redshanflora_backend.dto.order.OrderSummaryDto;
+import com.redshanflora.redshanflora_backend.dto.order.CustomerOrderDto;
 
 import java.util.List;
 
@@ -18,6 +19,8 @@ public interface OrderService {
     List<OrderSummaryDto> getCustomerOrders();
 
     OrderDetailsDto getCustomerOrderDetails(Long orderId);
+
+    List<CustomerOrderDto> getCustomerOrdersByUserId(Long userId);
 
     // Your admin order functions
     List<OrderSummaryDto> getAllOrdersForAdmin();
