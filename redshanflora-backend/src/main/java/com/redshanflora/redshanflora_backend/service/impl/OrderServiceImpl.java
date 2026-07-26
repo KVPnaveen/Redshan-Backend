@@ -4,6 +4,8 @@ import com.redshanflora.redshanflora_backend.dto.OrderListDto;
 import com.redshanflora.redshanflora_backend.dto.order.OrderDetailsDto;
 import com.redshanflora.redshanflora_backend.dto.order.OrderItemResponseDto;
 import com.redshanflora.redshanflora_backend.dto.order.OrderSummaryDto;
+import com.redshanflora.redshanflora_backend.dto.order.CustomerOrderDto;
+import com.redshanflora.redshanflora_backend.dto.order.CustomerOrderItemDto;
 import com.redshanflora.redshanflora_backend.dto.product.BouquetSnapshotDto;
 import com.redshanflora.redshanflora_backend.entity.Customer;
 import com.redshanflora.redshanflora_backend.entity.Order;
@@ -302,4 +304,58 @@ public class OrderServiceImpl implements OrderService {
 
         }
 
+    @Override
+    public List<CustomerOrderDto> getCustomerOrdersByUserId(Long userId) {
+        Customer customer = customerRepository.findByUserId(userId)
+                .orElseThrow(() -> new com.redshanflora.redshanflora_backend.exception.ResourceNotFoundException("Customer not found with user id: " + userId));
+
+        List<Order> orders = orderRepository.findByCustomerOrderByOrderDateDesc(customer);
+
+        List<CustomerOrderDto> dtoList = new ArrayList<>();
+        for (Order order : orders) {
+            List<OrderItem> items = orderItemRepository.findByOrder(order);
+            List<CustomerOrderItemDto> itemDtos = new ArrayList<>();
+
+            for (OrderItem item : items) {
+                Product product = item.getProduct();
+                itemDtos.add(CustomerOrderItemDto.builder()
+                        .productName(product != null ? product.getProductName() : "Unknown Product")
+                        .imageUrl(product != null ? product.getImageUrl() : null)
+                        .quantity(item.getQuantity())
+                        .price(item.getPrice())
+                        .build());
+            }
+
+            if (order.getCustomizedBouquet() != null) {
+                String snapshotJson = order.getCustomizedBouquet().getCustomBouquetSnapshot();
+                BouquetSnapshotDto snapshot = bouquetSnapshotService.deserializeSnapshot(snapshotJson);
+                BigDecimal bouquetPrice = (snapshot != null && snapshot.getPricing() != null)
+                        ? snapshot.getPricing().getGrandTotal()
+                        : order.getTotalAmount(); // fallback
+
+                itemDtos.add(CustomerOrderItemDto.builder()
+                        .productName("Customized Bouquet")
+                        .imageUrl(null)
+                        .quantity(1)
+                        .price(bouquetPrice)
+                        .build());
+            }
+
+            String currentSubStatus = (order.getOrderProcessing() != null && order.getOrderProcessing().getSubStatus() != null)
+                    ? order.getOrderProcessing().getSubStatus().name()
+                    : "PENDING";
+
+            dtoList.add(CustomerOrderDto.builder()
+                    .orderId(order.getId())
+                    .orderDate(order.getOrderDate())
+                    .totalAmount(order.getTotalAmount())
+                    .mainStatus(order.getOrderStatus() != null ? order.getOrderStatus().name() : "PENDING")
+                    .currentSubStatus(currentSubStatus)
+                    .items(itemDtos)
+                    .build());
+        }
+
+        return dtoList;
     }
+
+}
