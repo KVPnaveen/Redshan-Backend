@@ -234,6 +234,29 @@ public class PaymentServiceImpl implements PaymentService {
         return customer;
     }
 
+    @Transactional
+    public void completePayment(Order order) {
+        if (order == null) {
+            return;
+        }
+        Payment payment = order.getPayment();
+        if (payment == null) {
+            return;
+        }
+        if (!"PAID".equalsIgnoreCase(payment.getPaymentStatus())) {
+            payment.setPaymentStatus("PAID");
+            paymentRepository.save(payment);
+            Customer cust = order.getCustomer();
+            if (cust != null) {
+                int additionalPoints = payment.getAmount().divide(BigDecimal.valueOf(100), RoundingMode.DOWN).intValue();
+                int currentPoints = cust.getLoyaltyPoints() != null ? cust.getLoyaltyPoints() : 0;
+                cust.setLoyaltyPoints(currentPoints + additionalPoints);
+                customerRepository.save(cust);
+                log.info("Customer {} earned {} loyalty points.", cust.getId(), additionalPoints);
+            }
+        }
+    }
+
     @Override
     public void handleNotification(String merchantId, String orderId, String paymentId, String payhereAmount,
                                  String payhereCurrency, int statusCode, String md5sig) {
@@ -249,18 +272,7 @@ public class PaymentServiceImpl implements PaymentService {
                     Long orderIdVal = Long.parseLong(orderId.replace("ORDER-", ""));
                     Order order = orderRepository.findById(orderIdVal).orElse(null);
                     if (order != null) {
-                        Payment payment = order.getPayment();
-                        if (payment != null) {
-                            payment.setPaymentStatus("PAID");
-                            paymentRepository.save(payment);
-                            Customer cust = order.getCustomer();
-                            if (cust != null) {
-                                int additionalPoints = payment.getAmount().divide(BigDecimal.valueOf(100)).intValue();
-                                cust.setLoyaltyPoints(cust.getLoyaltyPoints() + additionalPoints);
-                                customerRepository.save(cust);
-                                log.info("Loyalty points updated for customerId={}, added {} points.", cust.getId(), additionalPoints);
-                            }
-                        }
+                        completePayment(order);
                     }
                 } catch (Exception e) {
                     log.error("Failed to update loyalty points / payment status for orderId={}", orderId, e);
@@ -294,10 +306,32 @@ public class PaymentServiceImpl implements PaymentService {
         if ("PENDING".equals(status)) {
             Integer code = orderStatusMap.get(orderId);
             if (code != null) {
-                status = (code == 2) ? "SUCCESS" : "FAILED";
+                if (code == 2) {
+                    status = "SUCCESS";
+                    try {
+                        Long orderIdVal = Long.parseLong(orderId.replace("ORDER-", ""));
+                        Order order = orderRepository.findById(orderIdVal).orElse(null);
+                        if (order != null) {
+                            completePayment(order);
+                        }
+                    } catch (Exception e) {
+                        log.error("Failed to complete payment for orderId={}", orderId, e);
+                    }
+                } else {
+                    status = "FAILED";
+                }
             } else {
                 log.warn("Payment status requested for orderId={}, but no webhook was received. Mocking success for localhost testing.", orderId);
                 status = "SUCCESS";
+                try {
+                    Long orderIdVal = Long.parseLong(orderId.replace("ORDER-", ""));
+                    Order order = orderRepository.findById(orderIdVal).orElse(null);
+                    if (order != null) {
+                        completePayment(order);
+                    }
+                } catch (Exception e) {
+                    log.error("Failed to mock complete payment for orderId={}", orderId, e);
+                }
             }
         }
         return ResponseEntity.ok(Map.of("status", status));
