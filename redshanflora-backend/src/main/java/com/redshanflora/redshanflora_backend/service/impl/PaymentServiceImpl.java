@@ -140,10 +140,20 @@ public class PaymentServiceImpl implements PaymentService {
                 Product product = productRepository.findById(item.getId())
                         .orElseThrow(() -> new CheckoutValidationException("Product not found with ID: " + item.getId()));
 
+                int requestedQty = item.getQuantity() != null ? item.getQuantity() : 1;
+                int currentStock = product.getStockQuantity() != null ? product.getStockQuantity() : 0;
+
+                if (requestedQty > currentStock) {
+                    throw new CheckoutValidationException("Insufficient stock.");
+                }
+
+                product.setStockQuantity(currentStock - requestedQty);
+                productRepository.save(product);
+
                 OrderItem orderItem = OrderItem.builder()
                         .order(order)
                         .product(product)
-                        .quantity(item.getQuantity() != null ? item.getQuantity() : 1)
+                        .quantity(requestedQty)
                         .price(product.getPrice())
                         .build();
                 orderItemRepository.save(orderItem);
