@@ -303,4 +303,28 @@ class RedshanfloraBackendApplicationTests {
 				new com.redshanflora.redshanflora_backend.dto.product.CoordinateDto(0.0, 0.0, Double.NEGATIVE_INFINITY),
 				false);
 	}
+
+	@Autowired
+	private com.redshanflora.redshanflora_backend.controller.AdminReportController adminReportController;
+
+	@Test
+	void testGetDashboardData() {
+		ResponseEntity<Map<String, Object>> response = adminReportController.getDashboardData("last30days");
+		assertNotNull(response);
+		assertEquals(200, response.getStatusCode().value());
+		Map<String, Object> body = response.getBody();
+		assertNotNull(body);
+		assertTrue(body.containsKey("dailyRevenue"));
+		assertTrue(body.containsKey("weeklyRevenue"));
+		assertTrue(body.containsKey("monthlyRevenue"));
+		assertTrue(body.containsKey("dailyChange"));
+		assertTrue(body.containsKey("weeklyChange"));
+		assertTrue(body.containsKey("monthlyChange"));
+		assertTrue(body.containsKey("customers"));
+		assertTrue(body.containsKey("orders"));
+		assertTrue(body.containsKey("categoryPerformance"));
+		assertTrue(body.containsKey("revenueGrowth"));
+		assertTrue(body.containsKey("topProducts"));
+	}
 }
+
