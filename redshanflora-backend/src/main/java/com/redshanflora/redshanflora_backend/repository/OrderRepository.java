@@ -21,6 +21,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     long countByOrderStatus(MainOrderStatus orderStatus);
     long countByOrderDateBetween(Instant start, Instant end);
+
+    long countByOrderStatusAndOrderDateBetween(MainOrderStatus orderStatus, Instant start, Instant end);
 }
 
 

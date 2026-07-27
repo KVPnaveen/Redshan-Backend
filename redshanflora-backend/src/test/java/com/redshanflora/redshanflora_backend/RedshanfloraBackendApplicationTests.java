@@ -309,7 +309,7 @@ class RedshanfloraBackendApplicationTests {
 
 	@Test
 	void testGetDashboardData() {
-		ResponseEntity<Map<String, Object>> response = adminReportController.getDashboardData("last30days");
+		ResponseEntity<Map<String, Object>> response = adminReportController.getDashboardData("last30days", null, null);
 		assertNotNull(response);
 		assertEquals(200, response.getStatusCode().value());
 		Map<String, Object> body = response.getBody();

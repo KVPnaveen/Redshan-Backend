@@ -18,9 +18,12 @@ public class AdminReportController {
     private final AdminReportService adminReportService;
 
     @GetMapping("/dashboard")
-    public ResponseEntity<Map<String, Object>> getDashboardData(@RequestParam(defaultValue = "last30days") String period) {
-        log.info("Received request for admin reports dashboard, period: {}", period);
-        Map<String, Object> data = adminReportService.getDashboardData(period);
+    public ResponseEntity<Map<String, Object>> getDashboardData(
+            @RequestParam(defaultValue = "last30days") String period,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
+        log.info("Received request for admin reports dashboard, period: {}, startDate: {}, endDate: {}", period, startDate, endDate);
+        Map<String, Object> data = adminReportService.getDashboardData(period, startDate, endDate);
         return ResponseEntity.ok(data);
     }
 }
