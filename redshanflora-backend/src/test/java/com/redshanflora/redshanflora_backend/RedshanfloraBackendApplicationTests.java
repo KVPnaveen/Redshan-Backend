@@ -65,20 +65,7 @@ class RedshanfloraBackendApplicationTests {
 		}
 	}
 
-	@Autowired
-	private javax.sql.DataSource dataSource;
 
-	@Test
-	void testPrintConstraints() throws java.sql.SQLException {
-		try (java.sql.Connection conn = dataSource.getConnection()) {
-			try (java.sql.Statement stmt = conn.createStatement();
-				 java.sql.ResultSet rs = stmt.executeQuery("SELECT cc.check_clause FROM information_schema.check_constraints cc WHERE cc.constraint_name = 'user_status_check'")) {
-				while (rs.next()) {
-					System.out.println("CONSTRAINT CLAUSE: " + rs.getString("check_clause"));
-				}
-			}
-		}
-	}
 
 	@Test
 	void contextLoads() {
@@ -316,4 +303,28 @@ class RedshanfloraBackendApplicationTests {
 				new com.redshanflora.redshanflora_backend.dto.product.CoordinateDto(0.0, 0.0, Double.NEGATIVE_INFINITY),
 				false);
 	}
+
+	@Autowired
+	private com.redshanflora.redshanflora_backend.controller.AdminReportController adminReportController;
+
+	@Test
+	void testGetDashboardData() {
+		ResponseEntity<Map<String, Object>> response = adminReportController.getDashboardData("last30days");
+		assertNotNull(response);
+		assertEquals(200, response.getStatusCode().value());
+		Map<String, Object> body = response.getBody();
+		assertNotNull(body);
+		assertTrue(body.containsKey("dailyRevenue"));
+		assertTrue(body.containsKey("weeklyRevenue"));
+		assertTrue(body.containsKey("monthlyRevenue"));
+		assertTrue(body.containsKey("dailyChange"));
+		assertTrue(body.containsKey("weeklyChange"));
+		assertTrue(body.containsKey("monthlyChange"));
+		assertTrue(body.containsKey("customers"));
+		assertTrue(body.containsKey("orders"));
+		assertTrue(body.containsKey("categoryPerformance"));
+		assertTrue(body.containsKey("revenueGrowth"));
+		assertTrue(body.containsKey("topProducts"));
+	}
 }
+
