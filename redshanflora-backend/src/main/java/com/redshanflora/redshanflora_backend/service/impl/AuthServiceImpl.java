@@ -4,10 +4,12 @@ import com.redshanflora.redshanflora_backend.dto.RegisterRequestDTO;
 import com.redshanflora.redshanflora_backend.dto.RegisterResponseDTO;
 import com.redshanflora.redshanflora_backend.dto.LoginRequestDTO;
 import com.redshanflora.redshanflora_backend.dto.LoginResponseDTO;
+import com.redshanflora.redshanflora_backend.entity.Employee;
 import com.redshanflora.redshanflora_backend.entity.User;
 import com.redshanflora.redshanflora_backend.enums.Role;
 import com.redshanflora.redshanflora_backend.exception.EmailAlreadyExistsException;
 import com.redshanflora.redshanflora_backend.exception.InvalidCredentialsException;
+import com.redshanflora.redshanflora_backend.repository.EmployeeRepository;
 import com.redshanflora.redshanflora_backend.repository.UserRepository;
 import com.redshanflora.redshanflora_backend.security.JwtService;
 import com.redshanflora.redshanflora_backend.service.AuthService;
@@ -16,7 +18,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.redshanflora.redshanflora_backend.entity.Employee;
+import com.redshanflora.redshanflora_backend.repository.EmployeeRepository;
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -24,6 +27,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final EmployeeRepository employeeRepository;
 
     @Override
     @Transactional
@@ -72,25 +76,54 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public LoginResponseDTO login(LoginRequestDTO request) {
+
         // 1. Normalize email
-        String normalizedEmail = request.getEmail() != null ? request.getEmail().trim().toLowerCase() : null;
+        String normalizedEmail =
+                request.getEmail() != null
+                        ? request.getEmail().trim().toLowerCase()
+                        : null;
 
-        // 2. Load User by email
+        // 2. Find user
         User user = userRepository.findByEmail(normalizedEmail)
-                .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
+                .orElseThrow(() ->
+                        new InvalidCredentialsException(
+                                "Invalid email or password"
+                        )
+                );
 
-        // 3. Verify password
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new InvalidCredentialsException("Invalid email or password");
+        // 3. Check password
+        if (!passwordEncoder.matches(
+                request.getPassword(),
+                user.getPassword()
+        )) {
+            throw new InvalidCredentialsException(
+                    "Invalid email or password"
+            );
         }
 
-        // 4. Generate JWT token after successful authentication
+        // 4. Generate token
         String token = jwtService.generateToken(user);
 
-        // 5. Build and return response DTO containing exact Role enum value
+        Long employeeId = null;
+
+        // 5. If user is an employee, find employee record
+        if (user.getRole() == Role.EMPLOYEE) {
+
+            employeeId = employeeRepository
+                    .findByUser_Id(user.getId())
+                    .map(Employee::getId)
+                    .orElseThrow(() ->
+                            new RuntimeException(
+                                    "Employee record not found"
+                            )
+                    );
+        }
+
+        // 6. Return login response
         return LoginResponseDTO.builder()
                 .token(token)
                 .userId(user.getId())
+                .employeeId(employeeId)
                 .name(user.getName())
                 .email(user.getEmail())
                 .role(user.getRole().name())
