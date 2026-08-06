@@ -10,7 +10,9 @@ import com.redshanflora.redshanflora_backend.repository.PaymentRepository;
 import com.redshanflora.redshanflora_backend.repository.ProductRepository;
 import com.redshanflora.redshanflora_backend.repository.UserRepository;
 import com.redshanflora.redshanflora_backend.repository.OrderItemRepository;
+
 import com.redshanflora.redshanflora_backend.repository.CustomerRepository;
+
 import com.redshanflora.redshanflora_backend.service.AdminReportService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,15 +40,19 @@ public class AdminReportServiceImpl implements AdminReportService {
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
     private final OrderItemRepository orderItemRepository;
+
     private final CustomerRepository customerRepository;
+
 
 
     private static final ZoneId COLOMBO_ZONE = ZoneId.of("Asia/Colombo");
 
 
     @Override
+
     public Map<String, Object> getDashboardData(String period, String startDateStr, String endDateStr) {
         log.info("Generating dashboard analytics report for period: {}, startDate: {}, endDate: {}", period, startDateStr, endDateStr);
+
         Map<String, Object> response = new LinkedHashMap<>();
 
         // 1. Calculate Revenue KPIs (Daily, Weekly, Monthly)
@@ -88,6 +94,7 @@ public class AdminReportServiceImpl implements AdminReportService {
         Instant periodStart;
         Instant prevPeriodStart;
         Instant periodEnd = now.toInstant();
+
         
         if ("customdaterange".equalsIgnoreCase(period) && startDateStr != null && endDateStr != null) {
             try {
@@ -158,6 +165,7 @@ public class AdminReportServiceImpl implements AdminReportService {
         response.put("orders", ordersMap);
 
 
+
         // 4. Category Performance Breakdown (Dynamically queried from database)
         List<Object[]> rawCategoryData;
         if (period.equalsIgnoreCase("lastmonth")) {
@@ -213,7 +221,9 @@ public class AdminReportServiceImpl implements AdminReportService {
 
 
         // 5. Dynamic Revenue Growth Chart Data
+
         Map<String, Object> revenueGrowth = generateRevenueGrowthData(period, now, periodStart, periodEnd);
+
         response.put("revenueGrowth", revenueGrowth);
 
         // 6. Top Selling Products (fetch standard products, fall back to mock details if empty)
@@ -282,6 +292,7 @@ public class AdminReportServiceImpl implements AdminReportService {
     }
 
     private Map<String, Object> generateRevenueGrowthData(String period, ZonedDateTime now, Instant periodStart, Instant periodEnd) {
+
         Map<String, Object> chartData = new LinkedHashMap<>();
         List<String> labels = new ArrayList<>();
         List<BigDecimal> values = new ArrayList<>();
@@ -387,6 +398,7 @@ public class AdminReportServiceImpl implements AdminReportService {
             if (totalMonth == null || totalMonth.compareTo(BigDecimal.ZERO) == 0) {
                 values.addAll(Arrays.asList(BigDecimal.valueOf(35000), BigDecimal.valueOf(48000), BigDecimal.valueOf(39000), BigDecimal.valueOf(62000), BigDecimal.valueOf(58000), BigDecimal.valueOf(85000), BigDecimal.valueOf(80000)));
             } else {
+
                 BigDecimal base = totalMonth.divide(BigDecimal.valueOf(7), 2, RoundingMode.HALF_UP);
                 for (int i = 1; i <= 7; i++) {
                     values.add(base.multiply(BigDecimal.valueOf(1 + (i * 0.1))));

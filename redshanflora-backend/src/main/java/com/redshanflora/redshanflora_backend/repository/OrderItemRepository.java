@@ -16,6 +16,28 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
 
     List<OrderItem> findByOrderId(Long id);
 
+
+
+    @Query("""
+        SELECT COUNT(oi.id)
+        FROM OrderItem oi
+        WHERE oi.order.id = :orderId
+    """)
+    Long countItemsByOrderId(
+            @Param("orderId") Long orderId
+    );
+
+
+    @Query("""
+        SELECT COALESCE(SUM(oi.quantity), 0)
+        FROM OrderItem oi
+        WHERE oi.order.id = :orderId
+    """)
+    Long sumQuantityByOrderId(
+            @Param("orderId") Long orderId
+    );
+
+
     @Query("SELECT c.categoryName, SUM(oi.quantity * oi.price) FROM OrderItem oi " +
            "JOIN oi.product p " +
            "JOIN p.category c " +
@@ -40,6 +62,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
             @Param("status") String status,
             @Param("startDate") Instant startDate,
             @Param("endDate") Instant endDate);
+
 }
 
 
