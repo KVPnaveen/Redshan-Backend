@@ -19,11 +19,16 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByCustomerOrderByOrderDateDesc(Customer customer);
     Optional<Order> findByIdAndCustomer(Long id, Customer customer);
 
+
+
+    long countByOrderStatusAndOrderDateBetween(MainOrderStatus orderStatus, Instant start, Instant end);
+
     List<Order> findByEmployeeId(Long employeeId);
 
 
     long countByOrderStatus(MainOrderStatus orderStatus);
     long countByOrderDateBetween(Instant start, Instant end);
+
 
 }
 

@@ -20,6 +20,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
     long countByRole(Role role);
     long countByRoleAndRegisteredDateBetween(Role role, java.time.Instant start, java.time.Instant end);
 
+    @Query("SELECT COUNT(u) FROM User u WHERE u.role = :role AND u.status = :status AND u.registeredDate <= :periodEnd")
+    long countByRoleAndStatusAndRegisteredDateBefore(
+        @Param("role") Role role,
+        @Param("status") String status,
+        @Param("periodEnd") java.time.Instant periodEnd);
+
+
 
     @Query("SELECT u FROM User u WHERE " +
            "LOWER(u.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +

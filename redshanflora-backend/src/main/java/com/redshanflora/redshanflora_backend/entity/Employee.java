@@ -27,4 +27,11 @@ public class Employee {
 
     @Column(name = "status")
     private String status;
+
+    @PrePersist
+    protected void onCreate() {
+        if (status == null || status.isBlank()) {
+            status = "Not Assigned";
+        }
+    }
 }

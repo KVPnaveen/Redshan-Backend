@@ -10,6 +10,9 @@ import com.redshanflora.redshanflora_backend.repository.PaymentRepository;
 import com.redshanflora.redshanflora_backend.repository.ProductRepository;
 import com.redshanflora.redshanflora_backend.repository.UserRepository;
 import com.redshanflora.redshanflora_backend.repository.OrderItemRepository;
+
+import com.redshanflora.redshanflora_backend.repository.CustomerRepository;
+
 import com.redshanflora.redshanflora_backend.service.AdminReportService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,12 +41,18 @@ public class AdminReportServiceImpl implements AdminReportService {
     private final ProductRepository productRepository;
     private final OrderItemRepository orderItemRepository;
 
+    private final CustomerRepository customerRepository;
+
+
+
     private static final ZoneId COLOMBO_ZONE = ZoneId.of("Asia/Colombo");
 
 
     @Override
-    public Map<String, Object> getDashboardData(String period) {
-        log.info("Generating dashboard analytics report for period: {}", period);
+
+    public Map<String, Object> getDashboardData(String period, String startDateStr, String endDateStr) {
+        log.info("Generating dashboard analytics report for period: {}, startDate: {}, endDate: {}", period, startDateStr, endDateStr);
+
         Map<String, Object> response = new LinkedHashMap<>();
 
         // 1. Calculate Revenue KPIs (Daily, Weekly, Monthly)
@@ -85,51 +94,77 @@ public class AdminReportServiceImpl implements AdminReportService {
         Instant periodStart;
         Instant prevPeriodStart;
         Instant periodEnd = now.toInstant();
-        switch (period.toLowerCase()) {
-            case "today":
-                periodStart = todayStart;
-                prevPeriodStart = yesterdayStart;
-                break;
-            case "last7days":
-                periodStart = weeklyStart;
-                prevPeriodStart = prevWeeklyStart;
-                break;
-            case "lastmonth":
-                ZonedDateTime pmStart = now.minusMonths(1).withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS);
-                periodStart = pmStart.toInstant();
-                periodEnd = pmStart.plusMonths(1).toInstant();
-                prevPeriodStart = pmStart.minusMonths(1).toInstant();
-                break;
-            case "last30days":
-            default:
+
+        
+        if ("customdaterange".equalsIgnoreCase(period) && startDateStr != null && endDateStr != null) {
+            try {
+                java.time.LocalDate sDate = java.time.LocalDate.parse(startDateStr);
+                java.time.LocalDate eDate = java.time.LocalDate.parse(endDateStr);
+                
+                periodStart = sDate.atStartOfDay(COLOMBO_ZONE).toInstant();
+                periodEnd = eDate.atTime(23, 59, 59).atZone(COLOMBO_ZONE).toInstant();
+                
+                long daysCount = java.time.temporal.ChronoUnit.DAYS.between(sDate, eDate) + 1;
+                prevPeriodStart = sDate.minusDays(daysCount).atStartOfDay(COLOMBO_ZONE).toInstant();
+            } catch (Exception e) {
+                log.error("Failed to parse custom date range: {} to {}", startDateStr, endDateStr, e);
                 periodStart = monthlyStart;
                 prevPeriodStart = prevMonthlyStart;
-                break;
+            }
+        } else {
+            switch (period.toLowerCase()) {
+                case "today":
+                    periodStart = todayStart;
+                    prevPeriodStart = yesterdayStart;
+                    break;
+                case "last7days":
+                    periodStart = weeklyStart;
+                    prevPeriodStart = prevWeeklyStart;
+                    break;
+                case "thismonth":
+                    ZonedDateTime tmStart = now.withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS);
+                    periodStart = tmStart.toInstant();
+                    prevPeriodStart = tmStart.minusMonths(1).toInstant();
+                    break;
+                case "lastmonth":
+                    ZonedDateTime pmStart = now.minusMonths(1).withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS);
+                    periodStart = pmStart.toInstant();
+                    periodEnd = pmStart.plusMonths(1).toInstant();
+                    prevPeriodStart = pmStart.minusMonths(1).toInstant();
+                    break;
+                case "last30days":
+                default:
+                    periodStart = monthlyStart;
+                    prevPeriodStart = prevMonthlyStart;
+                    break;
+            }
         }
 
-        long newCustomers = userRepository.countByRoleAndRegisteredDateBetween(Role.CUSTOMER, periodStart, now.toInstant());
+        long newCustomers = userRepository.countByRoleAndRegisteredDateBetween(Role.CUSTOMER, periodStart, periodEnd);
+        long activeCustomers = userRepository.countByRoleAndStatusAndRegisteredDateBefore(Role.CUSTOMER, "ACTIVE", periodEnd);
+        long returningCustomers = customerRepository.countReturningCustomers(periodEnd);
         
-        // Active and returning customers calculation (using order count per customer in this period)
-        // If empty, fallback to proportional mock metrics
         Map<String, Object> customersMap = new LinkedHashMap<>();
-        customersMap.put("new", newCustomers > 0 ? newCustomers : 124);
-        customersMap.put("active", 842); // Active users viewing products
-        customersMap.put("returning", 312); // Re-engagement count
+        customersMap.put("new", newCustomers);
+        customersMap.put("active", activeCustomers);
+        customersMap.put("returning", returningCustomers);
         response.put("customers", customersMap);
 
         // 3. Fetch Order Fulfillment Statuses
-        long totalOrders = orderRepository.count();
-        long pendingOrders = orderRepository.countByOrderStatus(MainOrderStatus.ORDER_CONFIRMED) 
-                           + orderRepository.countByOrderStatus(MainOrderStatus.PROCESSING);
-        long completedOrders = orderRepository.countByOrderStatus(MainOrderStatus.DISPATCHED_TO_COURIER);
+        long totalOrders = orderRepository.countByOrderDateBetween(periodStart, periodEnd);
+        long pendingOrders = orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.ORDER_CONFIRMED, periodStart, periodEnd)
+                           + orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.PROCESSING, periodStart, periodEnd);
+        long completedOrders = orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.DISPATCHED_TO_COURIER, periodStart, periodEnd);
         long cancelledOrders = 0; // Currently no CANCELLED enum, defaults to 0
 
         Map<String, Object> ordersMap = new LinkedHashMap<>();
-        ordersMap.put("total", totalOrders > 0 ? totalOrders : 2401);
-        ordersMap.put("pending", totalOrders > 0 ? pendingOrders : 45);
-        ordersMap.put("completed", totalOrders > 0 ? completedOrders : 2320);
+        ordersMap.put("total", totalOrders);
+        ordersMap.put("pending", pendingOrders);
+        ordersMap.put("completed", completedOrders);
         ordersMap.put("cancelled", cancelledOrders);
         response.put("orders", ordersMap);
+
+
 
         // 4. Category Performance Breakdown (Dynamically queried from database)
         List<Object[]> rawCategoryData;
@@ -186,7 +221,9 @@ public class AdminReportServiceImpl implements AdminReportService {
 
 
         // 5. Dynamic Revenue Growth Chart Data
-        Map<String, Object> revenueGrowth = generateRevenueGrowthData(period, now);
+
+        Map<String, Object> revenueGrowth = generateRevenueGrowthData(period, now, periodStart, periodEnd);
+
         response.put("revenueGrowth", revenueGrowth);
 
         // 6. Top Selling Products (fetch standard products, fall back to mock details if empty)
@@ -254,7 +291,8 @@ public class AdminReportServiceImpl implements AdminReportService {
         return map;
     }
 
-    private Map<String, Object> generateRevenueGrowthData(String period, ZonedDateTime now) {
+    private Map<String, Object> generateRevenueGrowthData(String period, ZonedDateTime now, Instant periodStart, Instant periodEnd) {
+
         Map<String, Object> chartData = new LinkedHashMap<>();
         List<String> labels = new ArrayList<>();
         List<BigDecimal> values = new ArrayList<>();
@@ -285,17 +323,82 @@ public class AdminReportServiceImpl implements AdminReportService {
                 BigDecimal dayRev = paymentRepository.sumTotalAmountByPaymentStatusAndPaymentDateBetween("paid", dayStart, dayEnd);
                 values.add(dayRev != null ? dayRev : BigDecimal.ZERO);
             }
-        } else {
-            // Default: last30days or lastmonth (Grouped by month intervals or past 7 months)
-            labels.addAll(Arrays.asList("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"));
-            // Fetch total monthly revenue of last 30 days
-            Instant monthlyStart = now.minusDays(29).truncatedTo(ChronoUnit.DAYS).toInstant();
-            BigDecimal totalMonth = paymentRepository.sumTotalAmountByPaymentStatusAndPaymentDateAfter("paid", monthlyStart);
+        } else if ("last30days".equalsIgnoreCase(period)) {
+            // Group into 4 weeks
+            for (int i = 3; i >= 0; i--) {
+                labels.add("Week " + (4 - i));
+                Instant start = now.minusDays((i + 1) * 7 - 1).truncatedTo(ChronoUnit.DAYS).toInstant();
+                Instant end = now.minusDays(i * 7 - 1).truncatedTo(ChronoUnit.DAYS).toInstant();
+                BigDecimal weekRev = paymentRepository.sumTotalAmountByPaymentStatusAndPaymentDateBetween("paid", start, end);
+                values.add(weekRev != null ? weekRev : BigDecimal.ZERO);
+            }
+        } else if ("thismonth".equalsIgnoreCase(period)) {
+            // Group by weeks of this month
+            ZonedDateTime tmStart = now.withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS);
+            for (int i = 0; i < 4; i++) {
+                labels.add("Week " + (i + 1));
+                Instant start = tmStart.plusDays(i * 7).toInstant();
+                Instant end = tmStart.plusDays((i + 1) * 7).toInstant();
+                if (i == 3) {
+                    end = tmStart.plusMonths(1).toInstant(); // make sure we cover the entire month
+                }
+                BigDecimal weekRev = paymentRepository.sumTotalAmountByPaymentStatusAndPaymentDateBetween("paid", start, end);
+                values.add(weekRev != null ? weekRev : BigDecimal.ZERO);
+            }
+        } else if ("lastmonth".equalsIgnoreCase(period)) {
+            // Group by weeks of last month
+            ZonedDateTime pmStart = now.minusMonths(1).withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS);
+            for (int i = 0; i < 4; i++) {
+                labels.add("Week " + (i + 1));
+                Instant start = pmStart.plusDays(i * 7).toInstant();
+                Instant end = pmStart.plusDays((i + 1) * 7).toInstant();
+                if (i == 3) {
+                    end = pmStart.plusMonths(1).toInstant();
+                }
+                BigDecimal weekRev = paymentRepository.sumTotalAmountByPaymentStatusAndPaymentDateBetween("paid", start, end);
+                values.add(weekRev != null ? weekRev : BigDecimal.ZERO);
+            }
+        } else if ("customdaterange".equalsIgnoreCase(period) && periodStart != null && periodEnd != null) {
+            long daysCount = java.time.temporal.ChronoUnit.DAYS.between(
+                ZonedDateTime.ofInstant(periodStart, COLOMBO_ZONE), 
+                ZonedDateTime.ofInstant(periodEnd, COLOMBO_ZONE)
+            ) + 1;
             
+            if (daysCount <= 7) {
+                // Group by day
+                DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MM-dd", Locale.US);
+                for (int i = 0; i < daysCount; i++) {
+                    ZonedDateTime day = ZonedDateTime.ofInstant(periodStart, COLOMBO_ZONE).plusDays(i);
+                    labels.add(day.format(fmt));
+                    Instant start = day.truncatedTo(ChronoUnit.DAYS).toInstant();
+                    Instant end = start.plus(1, ChronoUnit.DAYS);
+                    BigDecimal dayRev = paymentRepository.sumTotalAmountByPaymentStatusAndPaymentDateBetween("paid", start, end);
+                    values.add(dayRev != null ? dayRev : BigDecimal.ZERO);
+                }
+            } else {
+                // Group into 4 equal segments
+                long segmentDays = daysCount / 4;
+                if (segmentDays < 1) segmentDays = 1;
+                DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MM-dd", Locale.US);
+                for (int i = 0; i < 4; i++) {
+                    ZonedDateTime startDay = ZonedDateTime.ofInstant(periodStart, COLOMBO_ZONE).plusDays(i * segmentDays);
+                    ZonedDateTime endDay = startDay.plusDays(segmentDays);
+                    if (i == 3) {
+                        endDay = ZonedDateTime.ofInstant(periodEnd, COLOMBO_ZONE);
+                    }
+                    labels.add(startDay.format(fmt) + " to " + endDay.format(fmt));
+                    BigDecimal segRev = paymentRepository.sumTotalAmountByPaymentStatusAndPaymentDateBetween("paid", startDay.toInstant(), endDay.toInstant());
+                    values.add(segRev != null ? segRev : BigDecimal.ZERO);
+                }
+            }
+        } else {
+            // Default fallback
+            labels.addAll(Arrays.asList("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"));
+            BigDecimal totalMonth = paymentRepository.sumTotalAmountByPaymentStatusAndPaymentDateAfter("paid", periodStart);
             if (totalMonth == null || totalMonth.compareTo(BigDecimal.ZERO) == 0) {
                 values.addAll(Arrays.asList(BigDecimal.valueOf(35000), BigDecimal.valueOf(48000), BigDecimal.valueOf(39000), BigDecimal.valueOf(62000), BigDecimal.valueOf(58000), BigDecimal.valueOf(85000), BigDecimal.valueOf(80000)));
             } else {
-                // Distribute real revenue proportionally for representation
+
                 BigDecimal base = totalMonth.divide(BigDecimal.valueOf(7), 2, RoundingMode.HALF_UP);
                 for (int i = 1; i <= 7; i++) {
                     values.add(base.multiply(BigDecimal.valueOf(1 + (i * 0.1))));

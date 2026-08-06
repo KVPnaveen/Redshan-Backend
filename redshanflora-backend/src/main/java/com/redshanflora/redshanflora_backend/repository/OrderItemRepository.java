@@ -17,6 +17,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
     List<OrderItem> findByOrderId(Long id);
 
 
+
     @Query("""
         SELECT COUNT(oi.id)
         FROM OrderItem oi
@@ -35,6 +36,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
     Long sumQuantityByOrderId(
             @Param("orderId") Long orderId
     );
+
 
     @Query("SELECT c.categoryName, SUM(oi.quantity * oi.price) FROM OrderItem oi " +
            "JOIN oi.product p " +

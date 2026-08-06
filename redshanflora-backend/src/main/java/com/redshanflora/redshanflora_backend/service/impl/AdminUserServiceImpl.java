@@ -102,6 +102,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         Employee employee = Employee.builder()
                 .user(savedUser)
                 .promoteDate(request.getPromoteDate() != null ? request.getPromoteDate() : Instant.now())
+                .status("Not Assigned")
                 .build();
 
         Employee savedEmployee = employeeRepository.save(employee);
@@ -205,6 +206,7 @@ public class AdminUserServiceImpl implements AdminUserService {
                     Employee employee = Employee.builder()
                             .user(user)
                             .promoteDate(request.getPromoteDate() != null ? request.getPromoteDate() : Instant.now())
+                            .status("Not Assigned")
                             .build();
                     employeeRepository.save(employee);
                 }
