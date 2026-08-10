@@ -37,7 +37,7 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/admin/users/**").permitAll()
                         .requestMatchers("/api/customer/**").hasRole("CUSTOMER")
-                        .requestMatchers("/api/employee/**").hasRole("EMPLOYEE")
+                        .requestMatchers("/api/employee/**").permitAll()
                         .requestMatchers("/api/manager/**").hasRole("MANAGER")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().permitAll() // Allow other endpoints in development (original behavior)

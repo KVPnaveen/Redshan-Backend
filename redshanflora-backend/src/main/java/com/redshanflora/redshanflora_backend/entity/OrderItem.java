@@ -1,7 +1,9 @@
 package com.redshanflora.redshanflora_backend.entity;
 
+import com.redshanflora.redshanflora_backend.enums.SubStatus;
 import jakarta.persistence.*;
 import lombok.*;
+
 import java.math.BigDecimal;
 
 @Entity
@@ -31,5 +33,10 @@ public class OrderItem {
 
     @Column(name = "price", nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
-}
 
+    // NEW
+    @Enumerated(EnumType.STRING)
+    @Column(name = "item_status", nullable = false)
+    @Builder.Default
+    private SubStatus itemStatus = SubStatus.PENDING;
+}

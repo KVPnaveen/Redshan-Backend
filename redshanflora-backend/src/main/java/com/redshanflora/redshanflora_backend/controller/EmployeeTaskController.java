@@ -2,11 +2,12 @@ package com.redshanflora.redshanflora_backend.controller;
 
 import com.redshanflora.redshanflora_backend.dto.employee.AssignedTaskDTO;
 import com.redshanflora.redshanflora_backend.dto.employee.EmployeeOrderItemDTO;
+import com.redshanflora.redshanflora_backend.dto.employee.StockCheckResponseDTO;
 import com.redshanflora.redshanflora_backend.service.EmployeeTaskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import com.redshanflora.redshanflora_backend.dto.employee.StockCheckResponseDTO;
+
 import java.util.List;
 
 @RestController
@@ -23,22 +24,16 @@ public class EmployeeTaskController {
      * ============================================
      */
     @GetMapping("/assigned/{employeeId}")
-    public ResponseEntity<List<AssignedTaskDTO>>
-    getAssignedTasks(
+    public ResponseEntity<List<AssignedTaskDTO>> getAssignedTasks(
             @PathVariable Long employeeId
     ) {
 
-
         List<AssignedTaskDTO> tasks =
-                employeeTaskService
-                        .getAssignedTasks(
-                                employeeId
-                        );
-
+                employeeTaskService.getAssignedTasks(employeeId);
 
         return ResponseEntity.ok(tasks);
-
     }
+
 
     /**
      * ============================================
@@ -47,77 +42,119 @@ public class EmployeeTaskController {
      */
     @GetMapping("/order/{orderId}")
     public ResponseEntity<List<EmployeeOrderItemDTO>> getOrderItems(
-            @PathVariable Long orderId) {
+            @PathVariable Long orderId
+    ) {
 
         return ResponseEntity.ok(
                 employeeTaskService.getOrderItems(orderId)
         );
-
     }
+
 
     /**
      * ============================================
-     * Start Order
+     * Start ONE Order Item
+     *
+     * Example:
+     * PUT /api/employee/tasks/48/items/40/start
      * ============================================
      */
-    @PutMapping("/{orderId}/start")
-    public ResponseEntity<String> startOrder(
-            @PathVariable Long orderId) {
+    @PutMapping("/{orderId}/items/{itemId}/start")
+    public ResponseEntity<String> startItem(
+            @PathVariable Long orderId,
+            @PathVariable Long itemId
+    ) {
 
         return ResponseEntity.ok(
-                employeeTaskService.startOrder(orderId)
+                employeeTaskService.startItem(
+                        orderId,
+                        itemId
+                )
         );
-
     }
+
 
     /**
      * ============================================
-     * Stop Order
+     * Stop ONE Order Item
+     *
+     * Example:
+     * PUT /api/employee/tasks/48/items/40/stop
      * ============================================
      */
-    @PutMapping("/{orderId}/stop")
-    public ResponseEntity<String> stopOrder(
-            @PathVariable Long orderId) {
+    @PutMapping("/{orderId}/items/{itemId}/stop")
+    public ResponseEntity<String> stopItem(
+            @PathVariable Long orderId,
+            @PathVariable Long itemId
+    ) {
 
         return ResponseEntity.ok(
-                employeeTaskService.stopOrder(orderId)
+                employeeTaskService.stopItem(
+                        orderId,
+                        itemId
+                )
         );
-
     }
+
 
     /**
      * ============================================
-     * Resume Order
+     * Resume ONE Order Item
+     *
+     * Example:
+     * PUT /api/employee/tasks/48/items/40/resume
      * ============================================
      */
-    @PutMapping("/{orderId}/resume")
-    public ResponseEntity<String> resumeOrder(
-            @PathVariable Long orderId) {
+    @PutMapping("/{orderId}/items/{itemId}/resume")
+    public ResponseEntity<String> resumeItem(
+            @PathVariable Long orderId,
+            @PathVariable Long itemId
+    ) {
 
         return ResponseEntity.ok(
-                employeeTaskService.resumeOrder(orderId)
+                employeeTaskService.resumeItem(
+                        orderId,
+                        itemId
+                )
         );
-
     }
+
 
     /**
      * ============================================
-     * Complete Order
+     * Complete ONE Order Item
+     *
+     * Example:
+     * PUT /api/employee/tasks/48/items/40/complete
+     *
+     * IMPORTANT:
+     * Only item 40 will be completed.
      * ============================================
      */
-    @PutMapping("/{orderId}/complete")
-    public ResponseEntity<String> completeOrder(
-            @PathVariable Long orderId) {
+    @PutMapping("/{orderId}/items/{itemId}/complete")
+    public ResponseEntity<String> completeItem(
+            @PathVariable Long orderId,
+            @PathVariable Long itemId
+    ) {
 
         return ResponseEntity.ok(
-                employeeTaskService.completeOrder(orderId)
+                employeeTaskService.completeItem(
+                        orderId,
+                        itemId
+                )
         );
-
     }
 
+
+    /**
+     * ============================================
+     * Check Stock
+     * ============================================
+     */
     @GetMapping("/item/{orderItemId}/check-stock")
-    public ResponseEntity<?> checkStock(
-            @PathVariable Long orderItemId) {
+    public ResponseEntity<StockCheckResponseDTO> checkStock(
+            @PathVariable Long orderItemId
+    ) {
 
         return ResponseEntity.ok(
                 employeeTaskService.checkStock(orderItemId)
@@ -125,5 +162,18 @@ public class EmployeeTaskController {
     }
 
 
+    /**
+     * ============================================
+     * Get Completed Tasks
+     * ============================================
+     */
+    @GetMapping("/completed/{employeeId}")
+    public ResponseEntity<List<AssignedTaskDTO>> getCompletedTasks(
+            @PathVariable Long employeeId
+    ) {
 
+        return ResponseEntity.ok(
+                employeeTaskService.getCompletedTasks(employeeId)
+        );
+    }
 }

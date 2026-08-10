@@ -2,6 +2,7 @@ package com.redshanflora.redshanflora_backend.repository;
 
 import com.redshanflora.redshanflora_backend.entity.Order;
 import com.redshanflora.redshanflora_backend.entity.OrderItem;
+import com.redshanflora.redshanflora_backend.enums.SubStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,11 +13,23 @@ import java.util.List;
 
 @Repository
 public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
+
     List<OrderItem> findByOrder(Order order);
 
     List<OrderItem> findByOrderId(Long id);
 
-
+    /*
+     * Counts items that are NOT in the given status.
+     *
+     * Example:
+     * countByOrderIdAndItemStatusNot(orderId, SubStatus.COMPLETED)
+     *
+     * returns the number of incomplete items.
+     */
+    long countByOrderIdAndItemStatusNot(
+            Long orderId,
+            SubStatus itemStatus
+    );
 
     @Query("""
         SELECT COUNT(oi.id)
@@ -27,7 +40,6 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
             @Param("orderId") Long orderId
     );
 
-
     @Query("""
         SELECT COALESCE(SUM(oi.quantity), 0)
         FROM OrderItem oi
@@ -37,32 +49,37 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
             @Param("orderId") Long orderId
     );
 
-
-    @Query("SELECT c.categoryName, SUM(oi.quantity * oi.price) FROM OrderItem oi " +
-           "JOIN oi.product p " +
-           "JOIN p.category c " +
-           "JOIN oi.order o " +
-           "JOIN o.payment pay " +
-           "WHERE LOWER(pay.paymentStatus) = :status " +
-           "AND pay.paymentDate >= :startDate " +
-           "GROUP BY c.categoryName")
+    @Query("""
+        SELECT c.categoryName, SUM(oi.quantity * oi.price)
+        FROM OrderItem oi
+        JOIN oi.product p
+        JOIN p.category c
+        JOIN oi.order o
+        JOIN o.payment pay
+        WHERE LOWER(pay.paymentStatus) = :status
+        AND pay.paymentDate >= :startDate
+        GROUP BY c.categoryName
+    """)
     List<Object[]> findCategoryRevenueByPaymentStatusAndDateAfter(
             @Param("status") String status,
-            @Param("startDate") Instant startDate);
+            @Param("startDate") Instant startDate
+    );
 
-    @Query("SELECT c.categoryName, SUM(oi.quantity * oi.price) FROM OrderItem oi " +
-           "JOIN oi.product p " +
-           "JOIN p.category c " +
-           "JOIN oi.order o " +
-           "JOIN o.payment pay " +
-           "WHERE LOWER(pay.paymentStatus) = :status " +
-           "AND pay.paymentDate >= :startDate AND pay.paymentDate < :endDate " +
-           "GROUP BY c.categoryName")
+    @Query("""
+        SELECT c.categoryName, SUM(oi.quantity * oi.price)
+        FROM OrderItem oi
+        JOIN oi.product p
+        JOIN p.category c
+        JOIN oi.order o
+        JOIN o.payment pay
+        WHERE LOWER(pay.paymentStatus) = :status
+        AND pay.paymentDate >= :startDate
+        AND pay.paymentDate < :endDate
+        GROUP BY c.categoryName
+    """)
     List<Object[]> findCategoryRevenueByPaymentStatusAndDateBetween(
             @Param("status") String status,
             @Param("startDate") Instant startDate,
-            @Param("endDate") Instant endDate);
-
+            @Param("endDate") Instant endDate
+    );
 }
-
-
