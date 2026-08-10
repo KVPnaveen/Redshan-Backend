@@ -3,41 +3,77 @@ package com.redshanflora.redshanflora_backend.service;
 import com.redshanflora.redshanflora_backend.dto.employee.AssignedTaskDTO;
 import com.redshanflora.redshanflora_backend.dto.employee.EmployeeOrderItemDTO;
 import com.redshanflora.redshanflora_backend.dto.employee.StockCheckResponseDTO;
+
 import java.util.List;
 
 public interface EmployeeTaskService {
 
     /**
-     * Get all assigned orders of an employee
+     * Get all assigned orders of an employee.
+     *
+     * Orders remain here until ALL their items
+     * are completed.
      */
     List<AssignedTaskDTO> getAssignedTasks(Long employeeId);
 
+
     /**
-     * Get all order items of a selected order
+     * Get all items belonging to an order.
      */
     List<EmployeeOrderItemDTO> getOrderItems(Long orderId);
 
-    /**
-     * Start processing an order
-     */
-    String startOrder(Long orderId);
 
     /**
-     * Stop processing an order
+     * Start ONE item.
      */
-    String stopOrder(Long orderId);
+    String startItem(
+            Long orderId,
+            Long itemId
+    );
+
 
     /**
-     * Resume processing an order
+     * Stop ONE item.
      */
-    String resumeOrder(Long orderId);
+    String stopItem(
+            Long orderId,
+            Long itemId
+    );
+
 
     /**
-     * Complete processing an order
+     * Resume ONE item.
      */
-    String completeOrder(Long orderId);
+    String resumeItem(
+            Long orderId,
+            Long itemId
+    );
 
-    StockCheckResponseDTO checkStock(Long orderItemId);
+
+    /**
+     * Complete ONE item.
+     *
+     * The order is completed ONLY when
+     * every item in the order is completed.
+     */
+    String completeItem(
+            Long orderId,
+            Long itemId
+    );
 
 
+    /**
+     * Check stock for one order item.
+     */
+    StockCheckResponseDTO checkStock(
+            Long orderItemId
+    );
+
+
+    /**
+     * Get orders which are completely finished.
+     */
+    List<AssignedTaskDTO> getCompletedTasks(
+            Long employeeId
+    );
 }
