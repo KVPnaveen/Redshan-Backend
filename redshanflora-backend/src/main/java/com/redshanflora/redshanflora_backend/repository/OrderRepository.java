@@ -112,4 +112,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     long countByOrderStatus(MainOrderStatus orderStatus);
 
     long countByOrderDateBetween(Instant start, Instant end);
+
+    List<Order> findTop5ByOrderByOrderDateDesc();
 }
