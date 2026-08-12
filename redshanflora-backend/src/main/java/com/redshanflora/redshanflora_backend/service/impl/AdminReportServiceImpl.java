@@ -234,6 +234,20 @@ public class AdminReportServiceImpl implements AdminReportService {
         response.put("orderSegmentation", orderSegmentationMap);
         response.put("orderEfficiency", Math.round(orderEfficiency));
 
+        // 7. Recent Orders (fetch top 5 most recent orders)
+        List<Order> recentOrdersList = orderRepository.findTop5ByOrderByOrderDateDesc();
+        List<Map<String, Object>> recentOrdersMapList = new ArrayList<>();
+        
+        for (Order o : recentOrdersList) {
+            Map<String, Object> orderMap = new LinkedHashMap<>();
+            orderMap.put("id", "#RS-" + o.getId());
+            orderMap.put("customer", o.getCustomer() != null && o.getCustomer().getUser() != null ? o.getCustomer().getUser().getName() : "Guest Customer");
+            orderMap.put("status", o.getOrderStatus() != null ? o.getOrderStatus().name() : "PENDING");
+            orderMap.put("date", o.getOrderDate() != null ? o.getOrderDate().toString() : Instant.now().toString());
+            recentOrdersMapList.add(orderMap);
+        }
+        response.put("recentOrders", recentOrdersMapList);
+
 
 
         // 4. Category Performance Breakdown (Dynamically queried from database)
