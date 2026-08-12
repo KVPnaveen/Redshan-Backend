@@ -216,6 +216,24 @@ public class AdminReportServiceImpl implements AdminReportService {
         ordersMap.put("cancelled", cancelledOrders);
         response.put("orders", ordersMap);
 
+        // Calculate Order Segmentation & Efficiency for Doughnut Chart
+        long segCompleted = currentCompleted;
+        long segProcessing = orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.PROCESSING, periodStart, periodEnd);
+        long segPending = orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.ORDER_CONFIRMED, periodStart, periodEnd);
+        long segCancelled = 0;
+        long segTotal = segCompleted + segProcessing + segPending + segCancelled;
+        
+        double orderEfficiency = (segTotal > 0) ? ((double) segCompleted * 100.0) / segTotal : 100.0;
+        
+        Map<String, Object> orderSegmentationMap = new LinkedHashMap<>();
+        orderSegmentationMap.put("completed", segCompleted);
+        orderSegmentationMap.put("processing", segProcessing);
+        orderSegmentationMap.put("pending", segPending);
+        orderSegmentationMap.put("cancelled", segCancelled);
+        
+        response.put("orderSegmentation", orderSegmentationMap);
+        response.put("orderEfficiency", Math.round(orderEfficiency));
+
 
 
         // 4. Category Performance Breakdown (Dynamically queried from database)
