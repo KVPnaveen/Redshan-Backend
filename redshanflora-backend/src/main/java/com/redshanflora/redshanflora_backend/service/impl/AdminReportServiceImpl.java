@@ -28,6 +28,17 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
+import com.lowagie.text.Document;
+import com.lowagie.text.PageSize;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.Font;
+import com.lowagie.text.FontFactory;
+import com.lowagie.text.Element;
+import com.lowagie.text.pdf.PdfWriter;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfPCell;
+import java.awt.Color;
+import java.io.ByteArrayOutputStream;
 
 @Service
 @RequiredArgsConstructor
@@ -149,6 +160,47 @@ public class AdminReportServiceImpl implements AdminReportService {
         customersMap.put("active", activeCustomers);
         customersMap.put("returning", returningCustomers);
         response.put("customers", customersMap);
+
+        // Calculate KPI values & change percentages for the 7 dashboard cards
+        long currentCustomers = userRepository.countByRoleAndRegisteredDateBefore(Role.CUSTOMER, periodEnd);
+        long prevCustomers = userRepository.countByRoleAndRegisteredDateBefore(Role.CUSTOMER, periodStart);
+        double customersChange = calculatePercentageChange(BigDecimal.valueOf(currentCustomers), BigDecimal.valueOf(prevCustomers));
+
+        long currentManagers = userRepository.countByRoleAndRegisteredDateBefore(Role.MANAGER, periodEnd);
+        long prevManagers = userRepository.countByRoleAndRegisteredDateBefore(Role.MANAGER, periodStart);
+        double managersChange = calculatePercentageChange(BigDecimal.valueOf(currentManagers), BigDecimal.valueOf(prevManagers));
+
+        long currentEmployees = userRepository.countByRoleAndRegisteredDateBefore(Role.EMPLOYEE, periodEnd);
+        long prevEmployees = userRepository.countByRoleAndRegisteredDateBefore(Role.EMPLOYEE, periodStart);
+        double employeesChange = calculatePercentageChange(BigDecimal.valueOf(currentEmployees), BigDecimal.valueOf(prevEmployees));
+
+        long totalProducts = productRepository.count();
+        double productsChange = 0.0;
+
+        long currentPending = orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.ORDER_CONFIRMED, periodStart, periodEnd)
+                           + orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.PROCESSING, periodStart, periodEnd);
+        long prevPending = orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.ORDER_CONFIRMED, prevPeriodStart, periodStart)
+                        + orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.PROCESSING, prevPeriodStart, periodStart);
+        double pendingChange = calculatePercentageChange(BigDecimal.valueOf(currentPending), BigDecimal.valueOf(prevPending));
+
+        long currentCompleted = orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.ORDER_COMPLETED, periodStart, periodEnd)
+                             + orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.DISPATCHED_TO_COURIER, periodStart, periodEnd);
+        long prevCompleted = orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.ORDER_COMPLETED, prevPeriodStart, periodStart)
+                          + orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.DISPATCHED_TO_COURIER, prevPeriodStart, periodStart);
+        double completedChange = calculatePercentageChange(BigDecimal.valueOf(currentCompleted), BigDecimal.valueOf(prevCompleted));
+
+        response.put("totalCustomers", currentCustomers);
+        response.put("totalCustomersChange", customersChange);
+        response.put("totalManagers", currentManagers);
+        response.put("totalManagersChange", managersChange);
+        response.put("totalEmployees", currentEmployees);
+        response.put("totalEmployeesChange", employeesChange);
+        response.put("totalProducts", totalProducts);
+        response.put("totalProductsChange", productsChange);
+        response.put("pendingOrders", currentPending);
+        response.put("pendingOrdersChange", pendingChange);
+        response.put("completedOrders", currentCompleted);
+        response.put("completedOrdersChange", completedChange);
 
         // 3. Fetch Order Fulfillment Statuses
         long totalOrders = orderRepository.countByOrderDateBetween(periodStart, periodEnd);
@@ -409,5 +461,176 @@ public class AdminReportServiceImpl implements AdminReportService {
         chartData.put("labels", labels);
         chartData.put("values", values);
         return chartData;
+    }
+
+    @Override
+    public List<Map<String, Object>> getMonthlySalesOverview() {
+        log.info("Generating 6-month sales overview report");
+        List<Map<String, Object>> salesList = new ArrayList<>();
+        ZonedDateTime now = ZonedDateTime.now(COLOMBO_ZONE);
+        
+        for (int i = 5; i >= 0; i--) {
+            ZonedDateTime monthStartDateTime = now.minusMonths(i).withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS);
+            ZonedDateTime monthEndDateTime = monthStartDateTime.plusMonths(1);
+            
+            Instant start = monthStartDateTime.toInstant();
+            Instant end = monthEndDateTime.toInstant();
+            
+            BigDecimal revenue = paymentRepository.sumTotalAmountByPaymentStatusAndPaymentDateBetween("paid", start, end);
+            if (revenue == null) {
+                revenue = BigDecimal.ZERO;
+            }
+            
+            long ordersCount = orderRepository.countByOrderDateBetween(start, end);
+            long completedOrdersCount = orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.ORDER_COMPLETED, start, end)
+                                     + orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.DISPATCHED_TO_COURIER, start, end);
+            
+            Map<String, Object> monthData = new LinkedHashMap<>();
+            String monthName = monthStartDateTime.format(DateTimeFormatter.ofPattern("MMM", Locale.US));
+            monthData.put("month", monthName);
+            monthData.put("revenue", revenue);
+            monthData.put("ordersCount", ordersCount);
+            monthData.put("completedOrdersCount", completedOrdersCount);
+            
+            salesList.add(monthData);
+        }
+        return salesList;
+    }
+
+    @Override
+    public byte[] generatePdfReport(String period) {
+        log.info("Generating PDF report bytes for period: {}", period);
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        
+        try {
+            Document document = new Document(PageSize.A4, 36, 36, 36, 36);
+            PdfWriter.getInstance(document, out);
+            document.open();
+            
+            // Fonts
+            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 20, new Color(138, 99, 101));
+            Font subtitleFont = FontFactory.getFont(FontFactory.HELVETICA, 10, Color.GRAY);
+            Font headingFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 14, new Color(45, 45, 45));
+            Font normalFont = FontFactory.getFont(FontFactory.HELVETICA, 10, Color.DARK_GRAY);
+            Font tableHeaderFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, Color.WHITE);
+            
+            // Title
+            Paragraph title = new Paragraph("REDSHAN360 - SALES ANALYTICS REPORT", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            document.add(title);
+            
+            // Subtitle
+            Paragraph subtitle = new Paragraph("Generated on " + DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").format(java.time.LocalDateTime.now()) + " (Period: " + period + ")", subtitleFont);
+            subtitle.setAlignment(Element.ALIGN_CENTER);
+            subtitle.setSpacingAfter(20);
+            document.add(subtitle);
+            
+            // Separator line
+            Paragraph separator = new Paragraph("______________________________________________________________________________", subtitleFont);
+            separator.setSpacingAfter(20);
+            document.add(separator);
+            
+            // Section 1: Dashboard KPIs
+            document.add(new Paragraph("1. Executive Summary KPIs", headingFont));
+            Paragraph kpiIntro = new Paragraph("Summary of all-time counts, orders backlog, and monthly revenue performance:", normalFont);
+            kpiIntro.setSpacingAfter(10);
+            document.add(kpiIntro);
+            
+            // Fetch Dashboard data to get the real KPI values
+            Map<String, Object> dashboardData = getDashboardData(period, null, null);
+            
+            PdfPTable kpiTable = new PdfPTable(2);
+            kpiTable.setWidthPercentage(100);
+            kpiTable.setSpacingAfter(20);
+            
+            Color headerColor = new Color(138, 99, 101);
+            
+            addTableCell(kpiTable, "Indicator", tableHeaderFont, headerColor, true);
+            addTableCell(kpiTable, "Value", tableHeaderFont, headerColor, true);
+            
+            addTableCell(kpiTable, "Total Customers", normalFont, Color.WHITE, false);
+            addTableCell(kpiTable, String.valueOf(dashboardData.get("totalCustomers")), normalFont, Color.WHITE, false);
+            
+            addTableCell(kpiTable, "Total Managers", normalFont, Color.WHITE, false);
+            addTableCell(kpiTable, String.valueOf(dashboardData.get("totalManagers")), normalFont, Color.WHITE, false);
+            
+            addTableCell(kpiTable, "Total Employees", normalFont, Color.WHITE, false);
+            addTableCell(kpiTable, String.valueOf(dashboardData.get("totalEmployees")), normalFont, Color.WHITE, false);
+            
+            addTableCell(kpiTable, "Total Products Catalog", normalFont, Color.WHITE, false);
+            addTableCell(kpiTable, String.valueOf(dashboardData.get("totalProducts")), normalFont, Color.WHITE, false);
+            
+            addTableCell(kpiTable, "Pending Orders Queue", normalFont, Color.WHITE, false);
+            addTableCell(kpiTable, String.valueOf(dashboardData.get("pendingOrders")), normalFont, Color.WHITE, false);
+            
+            addTableCell(kpiTable, "Completed Orders", normalFont, Color.WHITE, false);
+            addTableCell(kpiTable, String.valueOf(dashboardData.get("completedOrders")), normalFont, Color.WHITE, false);
+            
+            addTableCell(kpiTable, "Monthly Revenue", normalFont, Color.WHITE, false);
+            BigDecimal monthlyRev = (BigDecimal) dashboardData.get("monthlyRevenue");
+            String revStr = monthlyRev != null ? "Rs. " + String.format("%,.2f", monthlyRev) : "Rs. 0.00";
+            addTableCell(kpiTable, revStr, normalFont, Color.WHITE, false);
+            
+            document.add(kpiTable);
+            
+            // Section 2: Monthly Sales Overview
+            document.add(new Paragraph("2. Monthly Sales Overview (Last 6 Months)", headingFont));
+            Paragraph salesIntro = new Paragraph("Sales revenue breakdown, transaction volumes, and completed fulfillment rates grouped by calendar month:", normalFont);
+            salesIntro.setSpacingAfter(10);
+            document.add(salesIntro);
+            
+            List<Map<String, Object>> monthlySales = getMonthlySalesOverview();
+            
+            PdfPTable salesTable = new PdfPTable(5);
+            salesTable.setWidthPercentage(100);
+            salesTable.setSpacingAfter(20);
+            
+            addTableCell(salesTable, "Month", tableHeaderFont, headerColor, true);
+            addTableCell(salesTable, "Revenue", tableHeaderFont, headerColor, true);
+            addTableCell(salesTable, "Total Orders", tableHeaderFont, headerColor, true);
+            addTableCell(salesTable, "Completed Orders", tableHeaderFont, headerColor, true);
+            addTableCell(salesTable, "Average Order Value", tableHeaderFont, headerColor, true);
+            
+            for (Map<String, Object> row : monthlySales) {
+                String month = (String) row.get("month");
+                BigDecimal rev = (BigDecimal) row.get("revenue");
+                long totalOrd = (long) row.get("ordersCount");
+                long completedOrd = (long) row.get("completedOrdersCount");
+                
+                BigDecimal aov = BigDecimal.ZERO;
+                if (totalOrd > 0) {
+                    aov = rev.divide(BigDecimal.valueOf(totalOrd), 2, java.math.RoundingMode.HALF_UP);
+                }
+                
+                addTableCell(salesTable, month, normalFont, Color.WHITE, false);
+                addTableCell(salesTable, "Rs. " + String.format("%,.2f", rev), normalFont, Color.WHITE, false);
+                addTableCell(salesTable, String.valueOf(totalOrd), normalFont, Color.WHITE, false);
+                addTableCell(salesTable, String.valueOf(completedOrd), normalFont, Color.WHITE, false);
+                addTableCell(salesTable, "Rs. " + String.format("%,.2f", aov), normalFont, Color.WHITE, false);
+            }
+            
+            document.add(salesTable);
+            
+            // Footer notice
+            Paragraph footer = new Paragraph("\n\nThis is an automatically generated system report from the RedShan360 administration console. All data is retrieved directly from the live PostgreSQL database.", subtitleFont);
+            footer.setAlignment(Element.ALIGN_CENTER);
+            document.add(footer);
+            
+            document.close();
+        } catch (Exception e) {
+            log.error("Failed to generate PDF report", e);
+        }
+        
+        return out.toByteArray();
+    }
+    
+    private void addTableCell(PdfPTable table, String text, Font font, Color bg, boolean isHeader) {
+        PdfPCell cell = new PdfPCell(new Paragraph(text, font));
+        cell.setBackgroundColor(bg);
+        cell.setPadding(8);
+        if (isHeader) {
+            cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        }
+        table.addCell(cell);
     }
 }
