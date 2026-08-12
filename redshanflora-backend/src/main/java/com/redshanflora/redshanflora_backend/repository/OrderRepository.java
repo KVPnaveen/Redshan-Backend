@@ -4,6 +4,8 @@ import com.redshanflora.redshanflora_backend.entity.Customer;
 import com.redshanflora.redshanflora_backend.entity.Order;
 import com.redshanflora.redshanflora_backend.enums.MainOrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
@@ -14,14 +16,18 @@ import java.util.Optional;
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
     List<Order> findByEmployeeIsNotNull();
+
     List<Order> findByEmployeeIsNull();
 
     List<Order> findByCustomerOrderByOrderDateDesc(Customer customer);
+
     Optional<Order> findByIdAndCustomer(Long id, Customer customer);
 
-
-
-    long countByOrderStatusAndOrderDateBetween(MainOrderStatus orderStatus, Instant start, Instant end);
+    long countByOrderStatusAndOrderDateBetween(
+            MainOrderStatus orderStatus,
+            Instant start,
+            Instant end
+    );
 
     List<Order> findByEmployeeId(Long employeeId);
 
@@ -35,11 +41,75 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             MainOrderStatus orderStatus
     );
 
+    // =========================================================
+    // NORMAL ASSIGNED ORDERS
+    // customizedBouquet IS NULL
+    // =========================================================
+
+    @Query("""
+        SELECT o
+        FROM Order o
+        WHERE o.employee.id = :employeeId
+          AND o.customizedBouquet IS NULL
+          AND o.orderStatus <> :status
+    """)
+    List<Order> findNormalAssignedOrders(
+            @Param("employeeId") Long employeeId,
+            @Param("status") MainOrderStatus status
+    );
+
+    // =========================================================
+    // CUSTOMIZED ASSIGNED ORDERS
+    // customizedBouquet IS NOT NULL
+    // =========================================================
+
+    @Query("""
+        SELECT o
+        FROM Order o
+        WHERE o.employee.id = :employeeId
+          AND o.customizedBouquet IS NOT NULL
+          AND o.orderStatus <> :status
+    """)
+    List<Order> findCustomizedAssignedOrders(
+            @Param("employeeId") Long employeeId,
+            @Param("status") MainOrderStatus status
+    );
+
+    // =========================================================
+    // NORMAL COMPLETED ORDERS
+    // customizedBouquet IS NULL
+    // =========================================================
+
+    @Query("""
+        SELECT o
+        FROM Order o
+        WHERE o.employee.id = :employeeId
+          AND o.customizedBouquet IS NULL
+          AND o.orderStatus = :status
+    """)
+    List<Order> findNormalCompletedOrders(
+            @Param("employeeId") Long employeeId,
+            @Param("status") MainOrderStatus status
+    );
+
+    // =========================================================
+    // CUSTOMIZED COMPLETED ORDERS
+    // customizedBouquet IS NOT NULL
+    // =========================================================
+
+    @Query("""
+        SELECT o
+        FROM Order o
+        WHERE o.employee.id = :employeeId
+          AND o.customizedBouquet IS NOT NULL
+          AND o.orderStatus = :status
+    """)
+    List<Order> findCustomizedCompletedOrders(
+            @Param("employeeId") Long employeeId,
+            @Param("status") MainOrderStatus status
+    );
 
     long countByOrderStatus(MainOrderStatus orderStatus);
+
     long countByOrderDateBetween(Instant start, Instant end);
-
-
 }
-
-
