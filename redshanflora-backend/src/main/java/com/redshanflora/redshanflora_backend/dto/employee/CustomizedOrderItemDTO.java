@@ -6,20 +6,27 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.List;
-
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AssignedTaskDTO {
+public class CustomizedOrderItemDTO {
 
-    private Long orderId;
+    private Long itemId;
 
-    private Long numberOfItems;
 
-    private Long totalQuantity;
+    private String itemName;
 
-    private List<CustomizedOrderItemDTO> items;
+    private Integer quantity;
+
+    private String status;
+
+    private String flowerType;
+
+    private Integer numberOfFlowers;
+
+    private String bouquetStyle;
+
+
 }

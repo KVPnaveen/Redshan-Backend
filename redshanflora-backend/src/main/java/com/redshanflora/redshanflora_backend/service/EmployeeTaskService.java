@@ -8,72 +8,95 @@ import java.util.List;
 
 public interface EmployeeTaskService {
 
-    /**
-     * Get all assigned orders of an employee.
-     *
-     * Orders remain here until ALL their items
-     * are completed.
-     */
-    List<AssignedTaskDTO> getAssignedTasks(Long employeeId);
+    // =========================================================
+    // ASSIGNED TASKS
+    // =========================================================
+
+    List<AssignedTaskDTO> getNormalAssignedTasks(
+            Long employeeId
+    );
+
+    List<AssignedTaskDTO> getCustomizedAssignedTasks(
+            Long employeeId
+    );
 
 
-    /**
-     * Get all items belonging to an order.
-     */
-    List<EmployeeOrderItemDTO> getOrderItems(Long orderId);
+    // =========================================================
+    // ORDER ITEMS
+    // =========================================================
+
+    List<EmployeeOrderItemDTO> getOrderItems(
+            Long orderId
+    );
 
 
-    /**
-     * Start ONE item.
-     */
+    // =========================================================
+    // ITEM STATUS
+    // =========================================================
+
     String startItem(
             Long orderId,
             Long itemId
     );
 
-
-    /**
-     * Stop ONE item.
-     */
     String stopItem(
             Long orderId,
             Long itemId
     );
 
-
-    /**
-     * Resume ONE item.
-     */
     String resumeItem(
             Long orderId,
             Long itemId
     );
 
-
-    /**
-     * Complete ONE item.
-     *
-     * The order is completed ONLY when
-     * every item in the order is completed.
-     */
     String completeItem(
             Long orderId,
             Long itemId
     );
 
 
-    /**
-     * Check stock for one order item.
-     */
+    // =========================================================
+    // STOCK
+    // =========================================================
+
     StockCheckResponseDTO checkStock(
             Long orderItemId
     );
 
 
-    /**
-     * Get orders which are completely finished.
-     */
-    List<AssignedTaskDTO> getCompletedTasks(
+    // =========================================================
+    // COMPLETED TASKS
+    // =========================================================
+
+    List<AssignedTaskDTO> getNormalCompletedTasks(
             Long employeeId
+    );
+
+    List<AssignedTaskDTO> getCustomizedCompletedTasks(
+            Long employeeId
+    );
+
+    // =========================================================
+// CUSTOMIZED ITEM WORKING STATUS
+// =========================================================
+
+    String startCustomizedItem(
+            Long orderId,
+            Long customId
+    );
+
+    String stopCustomizedItem(
+            Long orderId,
+            Long customId
+    );
+
+    String resumeCustomizedItem(
+            Long orderId,
+            Long customId
+    );
+
+    String completeCustomizedItem(
+            Long orderId,
+            Long customId
     );
 }
