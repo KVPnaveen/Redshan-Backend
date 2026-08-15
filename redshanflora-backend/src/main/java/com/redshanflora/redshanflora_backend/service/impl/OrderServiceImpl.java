@@ -1,6 +1,7 @@
 package com.redshanflora.redshanflora_backend.service.impl;
 
 import com.redshanflora.redshanflora_backend.dto.OrderListDto;
+import com.redshanflora.redshanflora_backend.dto.OrderStatusDTO;
 import com.redshanflora.redshanflora_backend.dto.order.OrderDetailsDto;
 import com.redshanflora.redshanflora_backend.dto.order.OrderItemResponseDto;
 import com.redshanflora.redshanflora_backend.dto.order.OrderSummaryDto;
@@ -12,6 +13,7 @@ import com.redshanflora.redshanflora_backend.entity.Order;
 import com.redshanflora.redshanflora_backend.entity.OrderItem;
 import com.redshanflora.redshanflora_backend.entity.Product;
 import com.redshanflora.redshanflora_backend.entity.User;
+import com.redshanflora.redshanflora_backend.enums.MainOrderStatus;
 import com.redshanflora.redshanflora_backend.exception.CheckoutValidationException;
 import com.redshanflora.redshanflora_backend.repository.CustomerRepository;
 import com.redshanflora.redshanflora_backend.repository.OrderItemRepository;
@@ -136,6 +138,10 @@ public class OrderServiceImpl implements OrderService {
 
         return dtoList;
     }
+
+
+
+
         /*
          * Finds the currently authenticated customer.
          */
@@ -358,4 +364,162 @@ public class OrderServiceImpl implements OrderService {
         return dtoList;
     }
 
-}
+    @Override
+    public List<OrderStatusDTO> getPreOrders() {
+        return getOrdersByStatus(MainOrderStatus.ORDER_CONFIRMED);
+    }
+
+    @Override
+    public List<OrderStatusDTO> getProcessingOrders() {
+        return getOrdersByStatus(MainOrderStatus.PROCESSING);
+    }
+
+    @Override
+    public List<OrderStatusDTO> getCompletedOrders() {
+        return getOrdersByStatus(MainOrderStatus.ORDER_COMPLETED);
+    }
+
+    @Override
+    public List<OrderStatusDTO> getDispatchedOrders() {
+        return getOrdersByStatus(MainOrderStatus.DISPATCHED_TO_COURIER);
+    }
+    private List<OrderStatusDTO> getOrdersByStatus(MainOrderStatus status) {
+
+        return orderRepository.findByOrderStatus(status)
+                .stream()
+                .map(this::convertToDTO)
+                .toList();
+    }
+
+    private OrderStatusDTO convertToDTO(Order order) {
+
+        String customerName = null;
+
+        if (order.getCustomer() != null
+                && order.getCustomer().getUser() != null) {
+
+            customerName = order.getCustomer()
+                    .getUser()
+                    .getName();
+        }
+        return OrderStatusDTO.builder()
+                .orderId(order.getId())
+                .customerName(customerName)
+                .totalAmount(order.getTotalAmount())
+                .orderStatus(order.getOrderStatus())
+                .build();
+    }
+
+    // ============================================================
+// DISPATCH ORDER TO COURIER
+// ============================================================
+
+    @Override
+    @Transactional
+    public OrderStatusDTO dispatchOrder(Long orderId) {
+
+        log.info("==================================================");
+        log.info("[DISPATCH ORDER] Request received");
+        log.info("[DISPATCH ORDER] Order ID: {}", orderId);
+
+
+        // --------------------------------------------------------
+        // FIND ORDER
+        // --------------------------------------------------------
+
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() ->
+                        new com.redshanflora.redshanflora_backend.exception.ResourceNotFoundException(
+                                "Order not found with id: " + orderId
+                        )
+                );
+
+
+        log.info(
+                "[DISPATCH ORDER] Current status: {}",
+                order.getOrderStatus()
+        );
+
+
+        // --------------------------------------------------------
+        // SAFETY CHECK
+        // --------------------------------------------------------
+        // Only ORDER_COMPLETED orders can be dispatched.
+        // --------------------------------------------------------
+
+        if (order.getOrderStatus()
+                != MainOrderStatus.ORDER_COMPLETED) {
+
+            throw new IllegalStateException(
+                    "Only completed orders can be dispatched. "
+                            + "Current status: "
+                            + order.getOrderStatus()
+            );
+        }
+
+
+        // --------------------------------------------------------
+        // UPDATE STATUS
+        // --------------------------------------------------------
+
+        order.setOrderStatus(
+                MainOrderStatus.DISPATCHED_TO_COURIER
+        );
+
+
+        log.info(
+                "[DISPATCH ORDER] New status: {}",
+                order.getOrderStatus()
+        );
+
+
+        // --------------------------------------------------------
+        // SAVE
+        // --------------------------------------------------------
+
+        Order updatedOrder =
+                orderRepository.save(order);
+
+
+        log.info(
+                "[DISPATCH ORDER] Order successfully updated"
+        );
+
+        log.info(
+                "[DISPATCH ORDER] Order ID: {}",
+                updatedOrder.getId()
+        );
+
+        log.info(
+                "[DISPATCH ORDER] Final status: {}",
+                updatedOrder.getOrderStatus()
+        );
+
+
+        // --------------------------------------------------------
+        // CREATE RESPONSE DTO
+        // --------------------------------------------------------
+
+        String customerName = null;
+
+        if (updatedOrder.getCustomer() != null
+                && updatedOrder.getCustomer().getUser() != null) {
+
+            customerName =
+                    updatedOrder.getCustomer()
+                            .getUser()
+                            .getName();
+        }
+
+
+        log.info("==================================================");
+
+
+        return OrderStatusDTO.builder()
+                .orderId(updatedOrder.getId())
+                .customerName(customerName)
+                .totalAmount(updatedOrder.getTotalAmount())
+                .orderStatus(updatedOrder.getOrderStatus())
+                .build();
+    }
+    }

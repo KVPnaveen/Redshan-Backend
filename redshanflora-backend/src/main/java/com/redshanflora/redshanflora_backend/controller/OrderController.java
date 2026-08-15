@@ -1,6 +1,7 @@
 package com.redshanflora.redshanflora_backend.controller;
 
 import com.redshanflora.redshanflora_backend.dto.OrderListDto;
+import com.redshanflora.redshanflora_backend.dto.OrderStatusDTO;
 import com.redshanflora.redshanflora_backend.service.OrderService;
 import lombok.RequiredArgsConstructor;
 import com.redshanflora.redshanflora_backend.dto.order.CustomerOrderDto;
@@ -32,6 +33,60 @@ public class OrderController {
     public ResponseEntity<List<CustomerOrderDto>> getMyOrders(@PathVariable Long userId) {
         List<CustomerOrderDto> orders = orderService.getCustomerOrdersByUserId(userId);
         return ResponseEntity.ok(orders);
+    }
+
+    @GetMapping("/pre-orders")
+    public ResponseEntity<List<OrderStatusDTO>> getPreOrders() {
+
+        return ResponseEntity.ok(
+                orderService.getPreOrders()
+        );
+    }
+
+    @GetMapping("/processing")
+    public ResponseEntity<List<OrderStatusDTO>> getProcessingOrders() {
+
+        return ResponseEntity.ok(
+                orderService.getProcessingOrders()
+        );
+    }
+
+    @GetMapping("/completed")
+    public ResponseEntity<List<OrderStatusDTO>> getCompletedOrders() {
+
+        return ResponseEntity.ok(
+                orderService.getCompletedOrders()
+        );
+    }
+
+    @GetMapping("/dispatched")
+    public ResponseEntity<List<OrderStatusDTO>> getDispatchedOrders() {
+
+        return ResponseEntity.ok(
+                orderService.getDispatchedOrders()
+        );
+    }
+
+    // ============================================================
+// DISPATCH ORDER TO COURIER
+// ============================================================
+
+    @PutMapping("/{orderId}/dispatch")
+    public ResponseEntity<OrderStatusDTO> dispatchOrder(
+            @PathVariable Long orderId
+    ) {
+
+
+
+
+        OrderStatusDTO response =
+                orderService.dispatchOrder(orderId);
+
+
+
+
+
+        return ResponseEntity.ok(response);
     }
 }
 
