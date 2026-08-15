@@ -1,6 +1,7 @@
 package com.redshanflora.redshanflora_backend.service;
 
 import com.redshanflora.redshanflora_backend.dto.OrderListDto;
+import com.redshanflora.redshanflora_backend.dto.OrderStatusDTO;
 import com.redshanflora.redshanflora_backend.dto.order.OrderDetailsDto;
 import com.redshanflora.redshanflora_backend.dto.order.OrderSummaryDto;
 import com.redshanflora.redshanflora_backend.dto.order.CustomerOrderDto;
@@ -26,5 +27,15 @@ public interface OrderService {
     List<OrderSummaryDto> getAllOrdersForAdmin();
 
     OrderDetailsDto getAdminOrderDetails(Long orderId);
+
+    List<OrderStatusDTO> getPreOrders();
+
+    List<OrderStatusDTO> getProcessingOrders();
+
+    List<OrderStatusDTO> getCompletedOrders();
+
+    List<OrderStatusDTO> getDispatchedOrders();
+
+    OrderStatusDTO dispatchOrder(Long orderId);
 
 }
