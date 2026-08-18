@@ -130,7 +130,7 @@ public class PaymentServiceImpl implements PaymentService {
         OrderProcessing processing = OrderProcessing.builder()
                 .order(order)
                 .mainStatus(MainOrderStatus.ORDER_CONFIRMED)
-                .subStatus(SubStatus.START)
+                .subStatus(SubStatus.PENDING)
                 .build();
         orderProcessingRepository.save(processing);
 

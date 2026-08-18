@@ -1,5 +1,6 @@
 package com.redshanflora.redshanflora_backend.controller;
 
+import com.redshanflora.redshanflora_backend.dto.product.ProductPriceUpdateDTO;
 import com.redshanflora.redshanflora_backend.dto.product.ProductRequest;
 import com.redshanflora.redshanflora_backend.dto.product.ProductResponse;
 import com.redshanflora.redshanflora_backend.service.ProductService;
@@ -68,5 +69,15 @@ public class ProductController {
     public ResponseEntity<Void> deleteProduct(@PathVariable Long id) {
         productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{productId}/price")
+    public ResponseEntity<String> updateProductPrice(
+            @PathVariable Long productId,
+            @Valid @RequestBody ProductPriceUpdateDTO dto) {
+
+        productService.updateProductPrice(productId, dto);
+
+        return ResponseEntity.ok("Product price updated successfully");
     }
 }
