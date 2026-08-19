@@ -3,6 +3,7 @@ package com.redshanflora.redshanflora_backend.controller;
 import com.redshanflora.redshanflora_backend.dto.product.ProductPriceUpdateDTO;
 import com.redshanflora.redshanflora_backend.dto.product.ProductRequest;
 import com.redshanflora.redshanflora_backend.dto.product.ProductResponse;
+import com.redshanflora.redshanflora_backend.dto.product.UpdateQuantityRequest;
 import com.redshanflora.redshanflora_backend.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -79,5 +80,33 @@ public class ProductController {
         productService.updateProductPrice(productId, dto);
 
         return ResponseEntity.ok("Product price updated successfully");
+    }
+
+    @PutMapping("/{productId}/quantity")
+    public ResponseEntity<?> updateQuantity(
+            @PathVariable Long productId,
+            @RequestBody UpdateQuantityRequest request) {
+
+        try {
+
+            productService.updateQuantity(
+                    productId,
+                    request.getQuantity()
+            );
+
+            return ResponseEntity.ok(
+                    "Product quantity updated successfully"
+            );
+
+        } catch (IllegalArgumentException e) {
+
+            return ResponseEntity.badRequest()
+                    .body(e.getMessage());
+
+        } catch (RuntimeException e) {
+
+            return ResponseEntity.notFound()
+                    .build();
+        }
     }
 }

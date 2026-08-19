@@ -229,4 +229,30 @@ public class ProductServiceImpl implements ProductService {
 
         productRepository.save(product);
     }
+
+    @Override
+    @Transactional
+    public void updateQuantity(Long productId, Integer quantity) {
+
+        // Validate quantity
+        if (quantity == null || quantity < 0) {
+            throw new IllegalArgumentException(
+                    "Quantity cannot be null or negative"
+            );
+        }
+
+        // Find product
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Product not found with ID: " + productId
+                ));
+
+        // Update stock quantity
+        product.setStockQuantity(quantity);
+
+        // Save to database
+        productRepository.save(product);
+    }
+
+
 }
