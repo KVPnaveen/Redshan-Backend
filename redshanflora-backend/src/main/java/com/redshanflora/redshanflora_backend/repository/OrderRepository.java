@@ -117,4 +117,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
 
     List<Order> findTop5ByOrderByOrderDateDesc();
+
+    long countByOrderDateGreaterThanEqualAndOrderDateLessThan(
+            Instant startDate,
+            Instant endDate
+    );
 }

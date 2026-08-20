@@ -11,4 +11,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findBySubCategory_Id(Long subCategoryId);
     List<Product> findByCategory_IdAndSubCategory_Id(Long categoryId, Long subCategoryId);
     List<Product> findByProductNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(String productNameKeyword, String descriptionKeyword);
+    List<Product> findByStockQuantityLessThanOrderByStockQuantityAsc(
+            Integer quantity
+    );
 }
