@@ -75,7 +75,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     public List<AssignedEmployeeDTO> getAssignedEmployees() {
 
-        List<Order> orders = orderRepository.findByEmployeeIsNotNull();
+        List<Order> orders = orderRepository.findFinishedOrdersWithEmployee();
 
         return orders.stream()
                 .map(order -> AssignedEmployeeDTO.builder()

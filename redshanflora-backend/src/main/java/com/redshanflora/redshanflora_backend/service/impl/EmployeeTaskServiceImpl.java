@@ -31,7 +31,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -60,14 +62,48 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
             Long employeeId
     ) {
 
-        List<Order> orders =
+        // 1. Existing normal orders
+        List<Order> normalOrders =
                 orderRepository.findNormalAssignedOrders(
                         employeeId,
                         MainOrderStatus.ORDER_COMPLETED
                 );
 
-        return convertOrdersToTaskDTO(orders);
+
+        // 2. BOTH orders that have pending normal items
+        List<Order> bothOrders =
+                orderRepository.findAssignedOrdersWithPendingItems(
+                        employeeId,
+                        SubStatus.PENDING,
+                        MainOrderStatus.ORDER_COMPLETED
+                );
+
+
+        // 3. Combine both results
+        Map<Long, Order> orderMap =
+                new LinkedHashMap<>();
+
+        for (Order order : normalOrders) {
+            orderMap.put(
+                    order.getId(),
+                    order
+            );
+        }
+
+        for (Order order : bothOrders) {
+            orderMap.put(
+                    order.getId(),
+                    order
+            );
+        }
+
+
+        // 4. Convert to DTO
+        return convertOrdersToTaskDTO(
+                new ArrayList<>(orderMap.values())
+        );
     }
+
 
 
     // =========================================================

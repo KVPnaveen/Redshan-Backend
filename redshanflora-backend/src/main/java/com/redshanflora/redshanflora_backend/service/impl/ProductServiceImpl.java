@@ -1,6 +1,7 @@
 package com.redshanflora.redshanflora_backend.service.impl;
 
 import com.redshanflora.redshanflora_backend.dto.category.CategoryResponse;
+import com.redshanflora.redshanflora_backend.dto.product.ProductPriceUpdateDTO;
 import com.redshanflora.redshanflora_backend.dto.product.ProductRequest;
 import com.redshanflora.redshanflora_backend.dto.product.ProductResponse;
 import com.redshanflora.redshanflora_backend.dto.category.SubCategoryResponse;
@@ -12,6 +13,7 @@ import com.redshanflora.redshanflora_backend.repository.CategoryRepository;
 import com.redshanflora.redshanflora_backend.repository.ProductRepository;
 import com.redshanflora.redshanflora_backend.repository.SubCategoryRepository;
 import com.redshanflora.redshanflora_backend.service.ProductService;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -211,4 +213,46 @@ public class ProductServiceImpl implements ProductService {
                         .build() : null)
                 .build();
     }
+
+    @Override
+    @Transactional
+    public void updateProductPrice(Long productId, ProductPriceUpdateDTO dto) {
+
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() ->
+                        new EntityNotFoundException(
+                                "Product not found with ID: " + productId
+                        )
+                );
+
+        product.setPrice(dto.getPrice());
+
+        productRepository.save(product);
+    }
+
+    @Override
+    @Transactional
+    public void updateQuantity(Long productId, Integer quantity) {
+
+        // Validate quantity
+        if (quantity == null || quantity < 0) {
+            throw new IllegalArgumentException(
+                    "Quantity cannot be null or negative"
+            );
+        }
+
+        // Find product
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Product not found with ID: " + productId
+                ));
+
+        // Update stock quantity
+        product.setStockQuantity(quantity);
+
+        // Save to database
+        productRepository.save(product);
+    }
+
+
 }

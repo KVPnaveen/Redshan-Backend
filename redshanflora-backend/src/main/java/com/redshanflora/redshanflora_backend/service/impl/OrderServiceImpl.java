@@ -104,7 +104,7 @@ public class OrderServiceImpl implements OrderService {
 
 
 
-    @Override
+    /*@Override
     public List<OrderListDto> getUnassignedOrders() {
 
         List<Order> orders = orderRepository.findByEmployeeIsNull();
@@ -137,12 +137,67 @@ public class OrderServiceImpl implements OrderService {
         }
 
         return dtoList;
+    }*/
+
+    @Override
+    public List<OrderListDto> getUnassignedOrders() {
+
+        List<Order> orders = orderRepository.findByEmployeeIsNull();
+
+        List<OrderListDto> dtoList = new ArrayList<>();
+
+        for (Order order : orders) {
+
+            List<OrderItem> items = orderItemRepository.findByOrderId(order.getId());
+
+            boolean hasCustomizedBouquet = order.getCustomizedBouquet() != null;
+
+            boolean hasNormalProduct = items.stream()
+                    .anyMatch(item -> item.getProduct() != null);
+
+            String itemName = "";
+
+            // Get the first normal product name, if available
+            if (hasNormalProduct) {
+                itemName = items.stream()
+                        .filter(item -> item.getProduct() != null)
+                        .map(item -> item.getProduct().getProductName())
+                        .findFirst()
+                        .orElse("");
+            }
+
+            String type;
+
+            if (hasCustomizedBouquet && hasNormalProduct) {
+                type = "both";
+            } else if (hasCustomizedBouquet) {
+                type = "customize order";
+            } else if (hasNormalProduct) {
+                type = "normal order";
+            } else {
+                type = "unknown";
+            }
+
+            OrderListDto dto = OrderListDto.builder()
+                    .orderId(order.getId())
+                    .customerName(order.getCustomer().getUser().getName())
+                    .itemName(itemName)
+                    .price(order.getTotalAmount())
+                    .type(type)
+                    .build();
+
+            dtoList.add(dto);
+        }
+
+        return dtoList;
     }
 
 
 
 
-        /*
+
+
+    /*
          * Finds the currently authenticated customer.
          */
         private Customer getAuthenticatedCustomer () {

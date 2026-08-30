@@ -3,6 +3,7 @@ package com.redshanflora.redshanflora_backend.repository;
 import com.redshanflora.redshanflora_backend.entity.Customer;
 import com.redshanflora.redshanflora_backend.entity.Order;
 import com.redshanflora.redshanflora_backend.enums.MainOrderStatus;
+import com.redshanflora.redshanflora_backend.enums.SubStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,7 +16,8 @@ import java.util.Optional;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
-    List<Order> findByEmployeeIsNotNull();
+    @Query("SELECT o FROM Order o WHERE o.employee IS NOT NULL AND o.workingStatus != 'Finished'")
+    List<Order> findFinishedOrdersWithEmployee();
 
     List<Order> findByEmployeeIsNull();
 
@@ -56,6 +58,20 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findNormalAssignedOrders(
             @Param("employeeId") Long employeeId,
             @Param("status") MainOrderStatus status
+    );
+
+    @Query("""
+    SELECT DISTINCT o
+    FROM Order o
+    JOIN OrderItem oi ON oi.order = o
+    WHERE o.employee.id = :employeeId
+      AND oi.itemStatus = :itemStatus
+      AND o.orderStatus <> :orderStatus
+""")
+    List<Order> findAssignedOrdersWithPendingItems(
+            @Param("employeeId") Long employeeId,
+            @Param("itemStatus") SubStatus itemStatus,
+            @Param("orderStatus") MainOrderStatus orderStatus
     );
 
     // =========================================================
@@ -117,4 +133,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
 
     List<Order> findTop5ByOrderByOrderDateDesc();
+
+    long countByOrderDateGreaterThanEqualAndOrderDateLessThan(
+            Instant startDate,
+            Instant endDate
+    );
 }

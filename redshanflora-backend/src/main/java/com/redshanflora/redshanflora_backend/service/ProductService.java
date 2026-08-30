@@ -1,4 +1,5 @@
 package com.redshanflora.redshanflora_backend.service;
+import com.redshanflora.redshanflora_backend.dto.product.ProductPriceUpdateDTO;
 
 import com.redshanflora.redshanflora_backend.dto.product.ProductRequest;
 import com.redshanflora.redshanflora_backend.dto.product.ProductResponse;
@@ -17,4 +18,8 @@ public interface ProductService {
     ProductResponse createProduct(ProductRequest request);
     ProductResponse updateProduct(Long id, ProductRequest request);
     void deleteProduct(Long id);
+    void updateProductPrice(Long productId, ProductPriceUpdateDTO dto);
+    void updateQuantity(Long productId, Integer quantity);
+
+
 }
