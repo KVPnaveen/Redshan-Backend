@@ -134,19 +134,6 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
         orderProcessingRepository.save(processing);
 
-        boolean hasCustomItem = request.getItems().stream()
-                .anyMatch(item ->
-                        item.getIsCustom() != null
-                                && item.getIsCustom()
-                );
-
-        boolean hasNormalItems = request.getItems().stream()
-                .anyMatch(item ->
-                        item.getIsCustom() == null
-                                || !item.getIsCustom()
-                );
-
-        boolean isBothOrder = hasNormalItems && hasCustomItem;
 
         // 5. Persist OrderItems in database (for standard products only)
         for (CartItemDto item : request.getItems()) {
@@ -169,11 +156,8 @@ public class PaymentServiceImpl implements PaymentService {
                         .product(product)
                         .quantity(requestedQty)
                         .price(product.getPrice())
-                        .itemStatus(
-                                isBothOrder
-                                        ? SubStatus.PENDING
-                                        : SubStatus.COMPLETED
-                        ).build();
+                        .itemStatus(SubStatus.PENDING)
+                        .build();
                 orderItemRepository.save(orderItem);
             }
         }
