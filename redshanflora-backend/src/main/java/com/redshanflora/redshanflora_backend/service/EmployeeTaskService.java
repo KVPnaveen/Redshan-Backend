@@ -8,95 +8,43 @@ import java.util.List;
 
 public interface EmployeeTaskService {
 
-    // =========================================================
-    // ASSIGNED TASKS
-    // =========================================================
+    //------------------ ASSIGNED TASKS ---------------------------------------------
 
-    List<AssignedTaskDTO> getNormalAssignedTasks(
-            Long employeeId
-    );
+    List<AssignedTaskDTO> getNormalAssignedTasks(Long employeeId);
 
-    List<AssignedTaskDTO> getCustomizedAssignedTasks(
-            Long employeeId
-    );
+    List<AssignedTaskDTO> getCustomizedAssignedTasks(Long employeeId);
 
+    //------------------ ORDER ITEMS ------------------------------------------------
 
-    // =========================================================
-    // ORDER ITEMS
-    // =========================================================
+    List<EmployeeOrderItemDTO> getOrderItems(Long orderId);
 
-    List<EmployeeOrderItemDTO> getOrderItems(
-            Long orderId
-    );
+    //------------------ ITEM STATUS ------------------------------------------------
 
+    String startItem(Long orderId, Long itemId);
 
-    // =========================================================
-    // ITEM STATUS
-    // =========================================================
+    String stopItem(Long orderId, Long itemId);
 
-    String startItem(
-            Long orderId,
-            Long itemId
-    );
+    String resumeItem(Long orderId, Long itemId);
 
-    String stopItem(
-            Long orderId,
-            Long itemId
-    );
+    String completeItem(Long orderId, Long itemId);
 
-    String resumeItem(
-            Long orderId,
-            Long itemId
-    );
+    //------------------ STOCK ------------------------------------------------------
 
-    String completeItem(
-            Long orderId,
-            Long itemId
-    );
+    StockCheckResponseDTO checkStock(Long orderItemId);
 
+    //------------------ COMPLETED TASKS --------------------------------------------
 
-    // =========================================================
-    // STOCK
-    // =========================================================
+    List<AssignedTaskDTO> getNormalCompletedTasks(Long employeeId);
 
-    StockCheckResponseDTO checkStock(
-            Long orderItemId
-    );
+    List<AssignedTaskDTO> getCustomizedCompletedTasks(Long employeeId);
 
+    //------------------ CUSTOMIZED ITEM WORKING STATUS -----------------------------
 
-    // =========================================================
-    // COMPLETED TASKS
-    // =========================================================
+    String startCustomizedItem(Long orderId, Long customId);
 
-    List<AssignedTaskDTO> getNormalCompletedTasks(
-            Long employeeId
-    );
+    String stopCustomizedItem(Long orderId, Long customId);
 
-    List<AssignedTaskDTO> getCustomizedCompletedTasks(
-            Long employeeId
-    );
+    String resumeCustomizedItem(Long orderId, Long customId);
 
-    // =========================================================
-// CUSTOMIZED ITEM WORKING STATUS
-// =========================================================
-
-    String startCustomizedItem(
-            Long orderId,
-            Long customId
-    );
-
-    String stopCustomizedItem(
-            Long orderId,
-            Long customId
-    );
-
-    String resumeCustomizedItem(
-            Long orderId,
-            Long customId
-    );
-
-    String completeCustomizedItem(
-            Long orderId,
-            Long customId
-    );
+    String completeCustomizedItem(Long orderId, Long customId);
 }
