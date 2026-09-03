@@ -123,6 +123,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .customer(customer)
                 .totalAmount(authoritativeTotal)
                 .orderStatus(MainOrderStatus.ORDER_CONFIRMED)
+                .workingStatus("Not Yet Start Working")
                 .build();
         order = orderRepository.save(order);
 
@@ -133,7 +134,6 @@ public class PaymentServiceImpl implements PaymentService {
                 .subStatus(SubStatus.PENDING)
                 .build();
         orderProcessingRepository.save(processing);
-
 
         // 5. Persist OrderItems in database (for standard products only)
         for (CartItemDto item : request.getItems()) {
@@ -198,7 +198,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         String orderIdStr = "ORDER-" + order.getId();
         String hash = generatePayHereHash(merchantId, orderIdStr, payHereAmount, currency, secretKey);
-        
+
         String itemsDescription = request.getItems().stream()
                 .map(item -> item.getTitle() + " x" + item.getQuantity())
                 .collect(Collectors.joining(", "));

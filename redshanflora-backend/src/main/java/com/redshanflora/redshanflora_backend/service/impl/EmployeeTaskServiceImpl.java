@@ -6,18 +6,10 @@ import com.redshanflora.redshanflora_backend.dto.employee.AssignedTaskDTO;
 import com.redshanflora.redshanflora_backend.dto.employee.CustomizedOrderItemDTO;
 import com.redshanflora.redshanflora_backend.dto.employee.EmployeeOrderItemDTO;
 import com.redshanflora.redshanflora_backend.dto.employee.StockCheckResponseDTO;
-import com.redshanflora.redshanflora_backend.entity.CustomizedBouquet;
-import com.redshanflora.redshanflora_backend.entity.Employee;
-import com.redshanflora.redshanflora_backend.entity.Order;
-import com.redshanflora.redshanflora_backend.entity.OrderItem;
-import com.redshanflora.redshanflora_backend.entity.OrderProcessing;
+import com.redshanflora.redshanflora_backend.entity.*;
 import com.redshanflora.redshanflora_backend.enums.MainOrderStatus;
 import com.redshanflora.redshanflora_backend.enums.SubStatus;
-import com.redshanflora.redshanflora_backend.repository.CustomizedBouquetRepository;
-import com.redshanflora.redshanflora_backend.repository.EmployeeRepository;
-import com.redshanflora.redshanflora_backend.repository.OrderItemRepository;
-import com.redshanflora.redshanflora_backend.repository.OrderProcessingRepository;
-import com.redshanflora.redshanflora_backend.repository.OrderRepository;
+import com.redshanflora.redshanflora_backend.repository.*;
 import com.redshanflora.redshanflora_backend.service.EmployeeTaskService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -44,20 +36,18 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
     @Override
     @Transactional(readOnly = true)
     public List<AssignedTaskDTO> getNormalAssignedTasks(Long employeeId) {
-        // 1. Existing normal orders
         List<Order> normalOrders = orderRepository.findNormalAssignedOrders(
                 employeeId,
                 MainOrderStatus.ORDER_COMPLETED
         );
 
-        // 2. BOTH orders that have pending normal items
-        List<Order> bothOrders = orderRepository.findAssignedOrdersWithPendingItems(
+        // Fetch BOTH orders that have items not yet COMPLETED (PENDING, START, STOP)
+        List<Order> bothOrders = orderRepository.findAssignedOrdersWithIncompleteItems(
                 employeeId,
-                SubStatus.PENDING,
+                SubStatus.COMPLETED,
                 MainOrderStatus.ORDER_COMPLETED
         );
 
-        // 3. Combine both results
         Map<Long, Order> orderMap = new LinkedHashMap<>();
         for (Order order : normalOrders) {
             orderMap.put(order.getId(), order);
@@ -66,7 +56,6 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
             orderMap.put(order.getId(), order);
         }
 
-        // 4. Convert to DTO
         return convertOrdersToTaskDTO(new ArrayList<>(orderMap.values()));
     }
 
@@ -340,274 +329,6 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
                 .build();
     }
 
-    //------------------ START ITEM -------------------------------------------------
-
-    @Override
-    @Transactional
-    public String startItem(Long orderId, Long itemId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
-
-        //------------------ FIRST CHECK CUSTOMIZED ORDER -------------------------------
-
-        CustomizedBouquet customizedBouquet = customizedBouquetRepository.findByOrder(order).orElse(null);
-
-        if (customizedBouquet != null) {
-            /*
-             * itemId MUST be customized_bouquet.custom_id
-             */
-            if (!customizedBouquet.getId().equals(itemId)) {
-                throw new RuntimeException("Customized item " + itemId + " does not belong to order " + orderId);
-            }
-
-            order.setOrderStatus(MainOrderStatus.PROCESSING);
-            order.setWorkingStatus("Active");
-            orderRepository.save(order);
-
-            OrderProcessing processing = orderProcessingRepository.findByOrderId(orderId).orElse(null);
-            if (processing != null) {
-                processing.setMainStatus(MainOrderStatus.PROCESSING);
-                processing.setSubStatus(SubStatus.START);
-                orderProcessingRepository.save(processing);
-            }
-
-            return "Customized item started successfully.";
-        }
-
-        //------------------ NORMAL ORDER -----------------------------------------------
-
-        OrderItem item = findOrderItem(orderId, itemId);
-
-        if (item.getProduct() != null) {
-            Integer stock = item.getProduct().getStockQuantity();
-            Integer required = item.getQuantity();
-
-            if (stock < required) {
-                return "Insufficient stock for " + item.getProduct().getProductName();
-            }
-        }
-
-        item.setItemStatus(SubStatus.START);
-        orderItemRepository.save(item);
-
-        order.setOrderStatus(MainOrderStatus.PROCESSING);
-        order.setWorkingStatus("Active");
-        orderRepository.save(order);
-
-        OrderProcessing processing = orderProcessingRepository.findByOrderId(orderId).orElse(null);
-        if (processing != null) {
-            processing.setMainStatus(MainOrderStatus.PROCESSING);
-            processing.setSubStatus(SubStatus.START);
-            orderProcessingRepository.save(processing);
-        }
-
-        return "Item started successfully.";
-    }
-
-    //------------------ STOP ITEM --------------------------------------------------
-
-    @Override
-    @Transactional
-    public String stopItem(Long orderId, Long itemId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
-
-        //------------------ CUSTOMIZED ORDER -------------------------------------------
-
-        CustomizedBouquet customizedBouquet = customizedBouquetRepository.findByOrder(order).orElse(null);
-
-        if (customizedBouquet != null) {
-            if (!customizedBouquet.getId().equals(itemId)) {
-                throw new RuntimeException("Customized item " + itemId + " does not belong to order " + orderId);
-            }
-
-            order.setOrderStatus(MainOrderStatus.PROCESSING);
-            order.setWorkingStatus("Offline");
-            orderRepository.save(order);
-
-            OrderProcessing processing = orderProcessingRepository.findByOrderId(orderId).orElse(null);
-            if (processing != null) {
-                processing.setMainStatus(MainOrderStatus.PROCESSING);
-                processing.setSubStatus(SubStatus.STOP);
-                orderProcessingRepository.save(processing);
-            }
-
-            return "Customized item stopped successfully.";
-        }
-
-        //------------------ NORMAL ORDER -----------------------------------------------
-
-        OrderItem item = findOrderItem(orderId, itemId);
-
-        item.setItemStatus(SubStatus.STOP);
-        orderItemRepository.save(item);
-
-        order.setOrderStatus(MainOrderStatus.PROCESSING);
-        order.setWorkingStatus("Offline");
-        orderRepository.save(order);
-
-        OrderProcessing processing = orderProcessingRepository.findByOrderId(orderId).orElse(null);
-        if (processing != null) {
-            processing.setMainStatus(MainOrderStatus.PROCESSING);
-            processing.setSubStatus(SubStatus.STOP);
-            orderProcessingRepository.save(processing);
-        }
-
-        return "Item stopped successfully.";
-    }
-
-    //------------------ RESUME ITEM ------------------------------------------------
-
-    @Override
-    @Transactional
-    public String resumeItem(Long orderId, Long itemId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
-
-        //------------------ CUSTOMIZED ORDER -------------------------------------------
-
-        CustomizedBouquet customizedBouquet = customizedBouquetRepository.findByOrder(order).orElse(null);
-
-        if (customizedBouquet != null) {
-            if (!customizedBouquet.getId().equals(itemId)) {
-                throw new RuntimeException("Customized item " + itemId + " does not belong to order " + orderId);
-            }
-
-            order.setOrderStatus(MainOrderStatus.PROCESSING);
-            order.setWorkingStatus("Active");
-            orderRepository.save(order);
-
-            OrderProcessing processing = orderProcessingRepository.findByOrderId(orderId).orElse(null);
-            if (processing != null) {
-                processing.setMainStatus(MainOrderStatus.PROCESSING);
-                processing.setSubStatus(SubStatus.START);
-                orderProcessingRepository.save(processing);
-            }
-
-            return "Customized item resumed successfully.";
-        }
-
-        //------------------ NORMAL ORDER -----------------------------------------------
-
-        OrderItem item = findOrderItem(orderId, itemId);
-
-        item.setItemStatus(SubStatus.START);
-        orderItemRepository.save(item);
-
-        order.setOrderStatus(MainOrderStatus.PROCESSING);
-        order.setWorkingStatus("Active");
-        orderRepository.save(order);
-
-        OrderProcessing processing = orderProcessingRepository.findByOrderId(orderId).orElse(null);
-        if (processing != null) {
-            processing.setMainStatus(MainOrderStatus.PROCESSING);
-            processing.setSubStatus(SubStatus.START);
-            orderProcessingRepository.save(processing);
-        }
-
-        return "Item resumed successfully.";
-    }
-
-    //------------------ COMPLETE ITEM ----------------------------------------------
-
-    @Override
-    @Transactional
-    public String completeItem(Long orderId, Long itemId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
-
-        //------------------ CUSTOMIZED ORDER -------------------------------------------
-
-        CustomizedBouquet customizedBouquet = customizedBouquetRepository.findByOrder(order).orElse(null);
-
-        if (customizedBouquet != null) {
-            /*
-             * itemId = customized_bouquet.custom_id
-             */
-            if (!customizedBouquet.getId().equals(itemId)) {
-                throw new RuntimeException("Customized item " + itemId + " does not belong to order " + orderId);
-            }
-
-            /*
-             * There is only ONE customized item in this customized order.
-             * Therefore completing this item completes the whole order.
-             */
-            order.setOrderStatus(MainOrderStatus.ORDER_COMPLETED);
-            order.setWorkingStatus("Finished");
-
-            OrderProcessing processing = orderProcessingRepository.findByOrderId(orderId).orElse(null);
-            if (processing != null) {
-                processing.setMainStatus(MainOrderStatus.ORDER_COMPLETED);
-                processing.setSubStatus(SubStatus.COMPLETED);
-                orderProcessingRepository.save(processing);
-            }
-
-            Employee employee = order.getEmployee();
-            if (employee != null) {
-                employee.setStatus("Not Assigned");
-                employeeRepository.save(employee);
-            }
-
-            orderRepository.save(order);
-            return "Customized item completed successfully. Order completed successfully.";
-        }
-
-        //------------------ NORMAL ORDER -----------------------------------------------
-
-        OrderItem selectedItem = findOrderItem(orderId, itemId);
-        selectedItem.setItemStatus(SubStatus.COMPLETED);
-        orderItemRepository.save(selectedItem);
-
-        List<OrderItem> allItems = orderItemRepository.findByOrderId(orderId);
-        if (allItems.isEmpty()) {
-            throw new RuntimeException("No items found for order " + orderId);
-        }
-
-        boolean allItemsCompleted = true;
-        for (OrderItem item : allItems) {
-            if (item.getItemStatus() != SubStatus.COMPLETED) {
-                allItemsCompleted = false;
-                break;
-            }
-        }
-
-        if (!allItemsCompleted) {
-            order.setOrderStatus(MainOrderStatus.PROCESSING);
-            order.setWorkingStatus("Active");
-            orderRepository.save(order);
-
-            OrderProcessing processing = orderProcessingRepository.findByOrderId(orderId).orElse(null);
-            if (processing != null) {
-                processing.setMainStatus(MainOrderStatus.PROCESSING);
-                processing.setSubStatus(SubStatus.COMPLETED);
-                orderProcessingRepository.save(processing);
-            }
-
-            return "Item completed successfully. Other items are still incomplete.";
-        }
-
-        //------------------ ALL NORMAL ITEMS COMPLETED ---------------------------------
-
-        order.setOrderStatus(MainOrderStatus.ORDER_COMPLETED);
-        order.setWorkingStatus("Finished");
-
-        OrderProcessing processing = orderProcessingRepository.findByOrderId(orderId).orElse(null);
-        if (processing != null) {
-            processing.setMainStatus(MainOrderStatus.ORDER_COMPLETED);
-            processing.setSubStatus(SubStatus.COMPLETED);
-            orderProcessingRepository.save(processing);
-        }
-
-        Employee employee = order.getEmployee();
-        if (employee != null) {
-            employee.setStatus("Not Assigned");
-            employeeRepository.save(employee);
-        }
-
-        orderRepository.save(order);
-        return "All items completed. Order completed successfully.";
-    }
-
     //------------------ NORMAL COMPLETED TASKS -------------------------------------
 
     @Override
@@ -632,107 +353,183 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
         return convertCustomizedOrdersToTaskDTO(orders);
     }
 
+
+    //--------------------------------AI
+    // noemal orders
+
+    //------------------ START ITEM (NORMAL) ----------------------------------------
+
     @Override
     @Transactional
-    public String startCustomizedItem(Long orderId, Long customId) {
+    public String startItem(Long orderId, Long itemId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
+                .orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
 
-        CustomizedBouquet customizedBouquet = customizedBouquetRepository.findById(customId)
-                .orElseThrow(() -> new RuntimeException("Customized bouquet not found: " + customId));
+        OrderItem item = findOrderItem(orderId, itemId);
 
-        // Make sure custom bouquet belongs to this order
-        if (customizedBouquet.getOrder() == null || !customizedBouquet.getOrder().getId().equals(orderId)) {
-            throw new RuntimeException("Customized bouquet " + customId + " does not belong to order " + orderId);
+        if (item.getProduct() != null) {
+            Integer stock = item.getProduct().getStockQuantity();
+            Integer required = item.getQuantity();
+
+            if (stock < required) {
+                return "Insufficient stock for " + item.getProduct().getProductName();
+            }
         }
 
+        item.setItemStatus(SubStatus.START);
+        orderItemRepository.save(item);
+
         order.setOrderStatus(MainOrderStatus.PROCESSING);
-        order.setWorkingStatus("Active");
+        order.setWorkingStatus("In Progress");
         orderRepository.save(order);
 
+        OrderProcessing processing = orderProcessingRepository.findByOrderId(orderId).orElse(null);
+        if (processing != null) {
+            processing.setMainStatus(MainOrderStatus.PROCESSING);
+
+            // ONLY update subStatus if this is a pure normal order (no custom bouquet attached)
+            boolean hasCustomBouquet = customizedBouquetRepository.findByOrder(order).isPresent();
+            if (!hasCustomBouquet) {
+                processing.setSubStatus(SubStatus.START);
+            }
+
+            if (order.getEmployee() != null) {
+                processing.setUpdatedByEmployee(order.getEmployee());
+            }
+            orderProcessingRepository.save(processing);
+        }
+
+        return "Item started successfully.";
+    }
+
+
+    //------------------ STOP ITEM (NORMAL) -----------------------------------------
+
+    @Override
+    @Transactional
+    public String stopItem(Long orderId, Long itemId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
+
+        OrderItem item = findOrderItem(orderId, itemId);
+
+        item.setItemStatus(SubStatus.STOP);
+        orderItemRepository.save(item);
+
+        order.setOrderStatus(MainOrderStatus.PROCESSING);
+        order.setWorkingStatus("Paused");
+        orderRepository.save(order);
+
+        OrderProcessing processing = orderProcessingRepository.findByOrderId(orderId).orElse(null);
+        if (processing != null) {
+            processing.setMainStatus(MainOrderStatus.PROCESSING);
+
+            // ONLY update subStatus if this is a pure normal order
+            boolean hasCustomBouquet = customizedBouquetRepository.findByOrder(order).isPresent();
+            if (!hasCustomBouquet) {
+                processing.setSubStatus(SubStatus.STOP);
+            }
+
+            if (order.getEmployee() != null) {
+                processing.setUpdatedByEmployee(order.getEmployee());
+            }
+            orderProcessingRepository.save(processing);
+        }
+
+        return "Item stopped successfully.";
+    }
+
+    //------------------ RESUME ITEM (NORMAL) ---------------------------------------
+
+    @Override
+    @Transactional
+    public String resumeItem(Long orderId, Long itemId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
+
+        OrderItem item = findOrderItem(orderId, itemId);
+
+        // 1. Update OrderItem Status
+        item.setItemStatus(SubStatus.START);
+        orderItemRepository.save(item);
+
+        // 2. Update Parent Order
+        order.setOrderStatus(MainOrderStatus.PROCESSING);
+        order.setWorkingStatus("In Progress");
+        orderRepository.save(order);
+
+        // 3. Update OrderProcessing Tracking Record
         OrderProcessing processing = orderProcessingRepository.findByOrderId(orderId).orElse(null);
         if (processing != null) {
             processing.setMainStatus(MainOrderStatus.PROCESSING);
             processing.setSubStatus(SubStatus.START);
+            if (order.getEmployee() != null) {
+                processing.setUpdatedByEmployee(order.getEmployee());
+            }
             orderProcessingRepository.save(processing);
         }
 
-        return "Customized item started successfully.";
+        return "Item resumed successfully.";
     }
+
+    //------------------ COMPLETE ITEM (NORMAL) -------------------------------------
 
     @Override
     @Transactional
-    public String stopCustomizedItem(Long orderId, Long customId) {
+    public String completeItem(Long orderId, Long itemId) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
+                .orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
 
-        CustomizedBouquet customizedBouquet = customizedBouquetRepository.findById(customId)
-                .orElseThrow(() -> new RuntimeException("Customized bouquet not found: " + customId));
+        OrderItem selectedItem = findOrderItem(orderId, itemId);
+        selectedItem.setItemStatus(SubStatus.COMPLETED);
+        orderItemRepository.save(selectedItem);
 
-        if (customizedBouquet.getOrder() == null || !customizedBouquet.getOrder().getId().equals(orderId)) {
-            throw new RuntimeException("Customized bouquet " + customId + " does not belong to order " + orderId);
+        List<OrderItem> allItems = orderItemRepository.findByOrderId(orderId);
+        boolean allNormalItemsCompleted = allItems.stream()
+                .allMatch(item -> item.getItemStatus() == SubStatus.COMPLETED);
+
+        if (!allNormalItemsCompleted) {
+            return "Item completed successfully. Other standard items are still pending.";
         }
 
-        order.setOrderStatus(MainOrderStatus.PROCESSING);
-        order.setWorkingStatus("Offline");
-        orderRepository.save(order);
-
+        // All normal items are done. Now check custom bouquet condition.
+        CustomizedBouquet customizedBouquet = customizedBouquetRepository.findByOrder(order).orElse(null);
         OrderProcessing processing = orderProcessingRepository.findByOrderId(orderId).orElse(null);
-        if (processing != null) {
-            processing.setMainStatus(MainOrderStatus.PROCESSING);
-            processing.setSubStatus(SubStatus.STOP);
-            orderProcessingRepository.save(processing);
+
+        if (customizedBouquet != null) {
+            // 'BOTH' order: check if custom bouquet is completed
+            boolean isCustomPartDone = processing != null && processing.getSubStatus() == SubStatus.COMPLETED;
+
+            if (isCustomPartDone) {
+                // Both parts done -> complete entire order
+                order.setOrderStatus(MainOrderStatus.ORDER_COMPLETED);
+                order.setWorkingStatus("Completed");
+
+                if (processing != null) {
+                    processing.setMainStatus(MainOrderStatus.ORDER_COMPLETED);
+                    orderProcessingRepository.save(processing);
+                }
+
+                Employee employee = order.getEmployee();
+                if (employee != null) {
+                    employee.setStatus("Not Assigned");
+                    employeeRepository.save(employee);
+                }
+
+                orderRepository.save(order);
+                return "All normal items and customized bouquet completed. Order completed successfully.";
+            } else {
+                // Normal done, but custom bouquet still PENDING / START / STOP
+                order.setOrderStatus(MainOrderStatus.PROCESSING);
+                orderRepository.save(order);
+                return "All normal items completed. Waiting for customized bouquet completion.";
+            }
         }
 
-        return "Customized item stopped successfully.";
-    }
-
-    @Override
-    @Transactional
-    public String resumeCustomizedItem(Long orderId, Long customId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
-
-        CustomizedBouquet customizedBouquet = customizedBouquetRepository.findById(customId)
-                .orElseThrow(() -> new RuntimeException("Customized bouquet not found: " + customId));
-
-        if (customizedBouquet.getOrder() == null || !customizedBouquet.getOrder().getId().equals(orderId)) {
-            throw new RuntimeException("Customized bouquet " + customId + " does not belong to order " + orderId);
-        }
-
-        order.setOrderStatus(MainOrderStatus.PROCESSING);
-        order.setWorkingStatus("Active");
-        orderRepository.save(order);
-
-        OrderProcessing processing = orderProcessingRepository.findByOrderId(orderId).orElse(null);
-        if (processing != null) {
-            processing.setMainStatus(MainOrderStatus.PROCESSING);
-            processing.setSubStatus(SubStatus.START);
-            orderProcessingRepository.save(processing);
-        }
-
-        return "Customized item resumed successfully.";
-    }
-
-    @Override
-    @Transactional
-    public String completeCustomizedItem(Long orderId, Long customId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
-
-        CustomizedBouquet customizedBouquet = customizedBouquetRepository.findById(customId)
-                .orElseThrow(() -> new RuntimeException("Customized bouquet not found: " + customId));
-
-        if (customizedBouquet.getOrder() == null || !customizedBouquet.getOrder().getId().equals(orderId)) {
-            throw new RuntimeException("Customized bouquet " + customId + " does not belong to order " + orderId);
-        }
-
-        // Customized order represents ONE customized item.
-        // Therefore completing this custom item completes the customized order.
+        // Pure NORMAL order: all items completed -> complete entire order
         order.setOrderStatus(MainOrderStatus.ORDER_COMPLETED);
-        order.setWorkingStatus("Finished");
+        order.setWorkingStatus("Completed");
 
-        OrderProcessing processing = orderProcessingRepository.findByOrderId(orderId).orElse(null);
         if (processing != null) {
             processing.setMainStatus(MainOrderStatus.ORDER_COMPLETED);
             processing.setSubStatus(SubStatus.COMPLETED);
@@ -746,6 +543,152 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
         }
 
         orderRepository.save(order);
-        return "Customized item completed successfully.";
+        return "All items completed. Order completed successfully.";
     }
+
+
+    // customized
+
+    //------------------ START CUSTOMIZED ITEM --------------------------------------
+
+    @Override
+    @Transactional
+    public String startCustomizedItem(Long orderId, Long customId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
+
+        CustomizedBouquet customizedBouquet = findCustomizedBouquet(orderId, customId);
+
+        // 1. Update Parent Order Status
+        order.setOrderStatus(MainOrderStatus.PROCESSING);
+        order.setWorkingStatus("In Progress");
+        orderRepository.save(order);
+
+        // 2. Update OrderProcessing (Bouquet working status)
+        OrderProcessing processing = orderProcessingRepository.findByOrderId(orderId).orElse(null);
+        if (processing != null) {
+            processing.setMainStatus(MainOrderStatus.PROCESSING);
+            processing.setSubStatus(SubStatus.START);
+            if (order.getEmployee() != null) {
+                processing.setUpdatedByEmployee(order.getEmployee());
+            }
+            orderProcessingRepository.save(processing);
+        }
+
+        return "Customized bouquet started successfully.";
+    }
+
+    //------------------ STOP CUSTOMIZED ITEM ---------------------------------------
+
+    @Override
+    @Transactional
+    public String stopCustomizedItem(Long orderId, Long customId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
+
+        CustomizedBouquet customizedBouquet = findCustomizedBouquet(orderId, customId);
+
+        // 1. Update Parent Order Working Status
+        order.setOrderStatus(MainOrderStatus.PROCESSING);
+        order.setWorkingStatus("Paused");
+        orderRepository.save(order);
+
+        // 2. Update OrderProcessing
+        OrderProcessing processing = orderProcessingRepository.findByOrderId(orderId).orElse(null);
+        if (processing != null) {
+            processing.setMainStatus(MainOrderStatus.PROCESSING);
+            processing.setSubStatus(SubStatus.STOP);
+            if (order.getEmployee() != null) {
+                processing.setUpdatedByEmployee(order.getEmployee());
+            }
+            orderProcessingRepository.save(processing);
+        }
+
+        return "Customized bouquet stopped successfully.";
+    }
+
+    //------------------ RESUME CUSTOMIZED ITEM -------------------------------------
+
+    @Override
+    @Transactional
+    public String resumeCustomizedItem(Long orderId, Long customId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
+
+        CustomizedBouquet customizedBouquet = findCustomizedBouquet(orderId, customId);
+
+        // 1. Update Parent Order Working Status
+        order.setOrderStatus(MainOrderStatus.PROCESSING);
+        order.setWorkingStatus("In Progress");
+        orderRepository.save(order);
+
+        // 2. Update OrderProcessing
+        OrderProcessing processing = orderProcessingRepository.findByOrderId(orderId).orElse(null);
+        if (processing != null) {
+            processing.setMainStatus(MainOrderStatus.PROCESSING);
+            processing.setSubStatus(SubStatus.START);
+            if (order.getEmployee() != null) {
+                processing.setUpdatedByEmployee(order.getEmployee());
+            }
+            orderProcessingRepository.save(processing);
+        }
+
+        return "Customized bouquet resumed successfully.";
+    }
+
+    //------------------ COMPLETE CUSTOMIZED ITEM -----------------------------------
+
+    @Override
+    @Transactional
+    public String completeCustomizedItem(Long orderId, Long customId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found with ID: " + orderId));
+
+        CustomizedBouquet customizedBouquet = findCustomizedBouquet(orderId, customId);
+
+        OrderProcessing processing = orderProcessingRepository.findByOrderId(orderId).orElse(null);
+        if (processing != null) {
+            processing.setSubStatus(SubStatus.COMPLETED);
+            if (order.getEmployee() != null) {
+                processing.setUpdatedByEmployee(order.getEmployee());
+            }
+            orderProcessingRepository.save(processing);
+        }
+
+        // 1. Check if standard items exist and whether they are all completed
+        List<OrderItem> allItems = orderItemRepository.findByOrderId(orderId);
+        boolean isNormalPartDone = true;
+
+        if (allItems != null && !allItems.isEmpty()) {
+            // For 'BOTH' orders: verify all normal items are completed
+            isNormalPartDone = allItems.stream()
+                    .allMatch(item -> item.getItemStatus() == SubStatus.COMPLETED);
+        }
+
+        // 2. Complete order if pure Customized OR Both parts are done
+        if (isNormalPartDone) {
+            order.setOrderStatus(MainOrderStatus.ORDER_COMPLETED);
+            order.setWorkingStatus("Completed");
+
+            if (processing != null) {
+                processing.setMainStatus(MainOrderStatus.ORDER_COMPLETED);
+                orderProcessingRepository.save(processing);
+            }
+
+            // Release assigned employee
+            Employee employee = order.getEmployee();
+            if (employee != null) {
+                employee.setStatus("Not Assigned");
+                employeeRepository.save(employee);
+            }
+
+            orderRepository.save(order);
+            return "Customized bouquet completed. Order completed successfully.";
+        } else {
+            // Bouquet is done, but standard items are still pending
+            return "Customized bouquet completed successfully. Waiting for normal items completion.";
+        }
+    }
+
+//--------------------------------AI
 }
