@@ -74,6 +74,20 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             @Param("orderStatus") MainOrderStatus orderStatus
     );
 
+    @Query("""
+    SELECT DISTINCT o
+    FROM Order o
+    JOIN OrderItem oi ON oi.order = o
+    WHERE o.employee.id = :employeeId
+      AND oi.itemStatus <> :completedItemStatus
+      AND o.orderStatus <> :completedOrderStatus
+""")
+    List<Order> findAssignedOrdersWithIncompleteItems(
+            @Param("employeeId") Long employeeId,
+            @Param("completedItemStatus") SubStatus completedItemStatus,
+            @Param("completedOrderStatus") MainOrderStatus completedOrderStatus
+    );
+
     // =========================================================
     // CUSTOMIZED ASSIGNED ORDERS
     // customizedBouquet IS NOT NULL
