@@ -188,12 +188,19 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private ProductResponse mapToResponse(Product product) {
+        Long categoryId = product.getCategory() != null ? product.getCategory().getId() : null;
+        String categoryName = product.getCategory() != null ? product.getCategory().getCategoryName() : null;
+        String categoryDesc = product.getCategory() != null ? product.getCategory().getDescription() : null;
+
+        Long subCategoryId = product.getSubCategory() != null ? product.getSubCategory().getId() : null;
+        String subCategoryName = product.getSubCategory() != null ? product.getSubCategory().getSubCategoryName() : null;
+
         return ProductResponse.builder()
                 .id(product.getId())
-                .categoryId(product.getCategory().getId())
-                .categoryName(product.getCategory().getCategoryName())
-                .subCategoryId(product.getSubCategory() != null ? product.getSubCategory().getId() : null)
-                .subCategoryName(product.getSubCategory() != null ? product.getSubCategory().getSubCategoryName() : null)
+                .categoryId(categoryId)
+                .categoryName(categoryName)
+                .subCategoryId(subCategoryId)
+                .subCategoryName(subCategoryName)
                 .productName(product.getProductName())
                 .description(product.getDescription())
                 .price(product.getPrice())
@@ -201,15 +208,15 @@ public class ProductServiceImpl implements ProductService {
                 .imageUrl(convertToAbsoluteUrl(product.getImageUrl()))
                 .modelUrl(convertToAbsoluteUrl(product.getModelUrl()))
                 .discountPercentage(product.getDiscountPercentage())
-                .category(CategoryResponse.builder()
-                        .id(product.getCategory().getId())
-                        .categoryName(product.getCategory().getCategoryName())
-                        .description(product.getCategory().getDescription())
-                        .build())
+                .category(product.getCategory() != null ? CategoryResponse.builder()
+                        .id(categoryId)
+                        .categoryName(categoryName)
+                        .description(categoryDesc)
+                        .build() : null)
                 .subCategory(product.getSubCategory() != null ? SubCategoryResponse.builder()
-                        .id(product.getSubCategory().getId())
-                        .categoryId(product.getCategory().getId())
-                        .subCategoryName(product.getSubCategory().getSubCategoryName())
+                        .id(subCategoryId)
+                        .categoryId(categoryId)
+                        .subCategoryName(subCategoryName)
                         .build() : null)
                 .build();
     }
@@ -254,5 +261,33 @@ public class ProductServiceImpl implements ProductService {
         productRepository.save(product);
     }
 
+    @Override
+    @Transactional
+    public ProductResponse updateProductWithImage(Long id, java.math.BigDecimal price, Integer stockQuantity, org.springframework.web.multipart.MultipartFile image) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));
 
+        if (price != null) {
+            product.setPrice(price);
+        }
+        if (stockQuantity != null) {
+            product.setStockQuantity(stockQuantity);
+        }
+
+        if (image != null && !image.isEmpty()) {
+            try {
+                String uploadDir = "uploads/products/";
+                java.nio.file.Files.createDirectories(java.nio.file.Paths.get(uploadDir));
+                String fileName = java.util.UUID.randomUUID() + "_" + image.getOriginalFilename();
+                java.nio.file.Path filePath = java.nio.file.Paths.get(uploadDir, fileName);
+                image.transferTo(filePath);
+                product.setImageUrl("/uploads/products/" + fileName);
+            } catch (java.io.IOException e) {
+                throw new RuntimeException("Failed to upload product image", e);
+            }
+        }
+
+        Product savedProduct = productRepository.save(product);
+        return mapToResponse(savedProduct);
+    }
 }
