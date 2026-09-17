@@ -28,7 +28,11 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     public List<NotAssignedEmployeeDTO> getNotAssignedEmployees() {
 
-        List<Employee> employees = employeeRepository.findByStatus("Not Assigned");
+        List<Employee> employees =
+                employeeRepository.findByStatusAndUser_Status(
+                        "Not Assigned",
+                        "ACTIVE"
+                );
 
         return employees.stream()
                 .map(employee -> NotAssignedEmployeeDTO.builder()
