@@ -17,4 +17,7 @@ public class OrderSummaryDto {
     private BigDecimal totalAmount;
     private String orderStatus;
     private String paymentStatus;
+    private String customerName;
+    private String customerEmail;
+    private Boolean isCustom;
 }

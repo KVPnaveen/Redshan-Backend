@@ -27,16 +27,21 @@ public class WebConfig implements WebMvcConfigurer {
             uploadUri += "/";
         }
 
+        String uploadPathStr = uploadPath.toAbsolutePath().toString().replace("\\", "/");
+        if (!uploadPathStr.endsWith("/")) {
+            uploadPathStr += "/";
+        }
+
         System.out.println("==================================================");
         System.out.println("RESOLVED UPLOADS PATH: " + uploadPath.toAbsolutePath());
         System.out.println("RESOLVED UPLOADS URI : " + uploadUri);
         System.out.println("==================================================");
 
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations(uploadUri);
+                .addResourceLocations(uploadUri, "file:///" + uploadPathStr, "file:" + uploadPathStr);
 
         registry.addResourceHandler("/models/**")
-                .addResourceLocations(uploadUri + "models/");
+                .addResourceLocations(uploadUri + "models/", "file:///" + uploadPathStr + "models/", "file:" + uploadPathStr + "models/");
     }
 
     private Path resolveUploadDir() {
