@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -30,17 +31,22 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                        // Public endpoints
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/payment/notify", "/api/checkout/notify").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/products/**", "/api/categories/**", "/api/subcategories/**").permitAll()
 
-                       
-
-                        .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/forgot-password/**").permitAll()
-
-                        .requestMatchers("/api/admin/users/**").permitAll()
-                        .requestMatchers("/api/customer/**").hasRole("CUSTOMER")
-                        .requestMatchers("/api/employee/**").permitAll()
-                        .requestMatchers("/api/manager/**").hasRole("MANAGER")
+                        // Role-specific protected endpoints
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .anyRequest().permitAll() // Allow other endpoints in development (original behavior)
+                        .requestMatchers("/api/reports/**").hasAnyRole("ADMIN", "MANAGER")
+                        .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers("/api/dashboard/**").hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers("/api/employee/**", "/api/employees/**").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN")
+                        .requestMatchers("/api/cart/**", "/api/wishlist/**", "/api/customer/**", "/api/loyalty/**").hasRole("CUSTOMER")
+                        .requestMatchers("/api/checkout/**", "/api/payment/**").hasRole("CUSTOMER")
+
+                        // Require authentication on all other endpoints
+                        .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
@@ -55,17 +61,22 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                        // Public endpoints
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/payment/notify", "/api/checkout/notify").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/products/**", "/api/categories/**", "/api/subcategories/**").permitAll()
 
-                        
-
-                        .requestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/forgot-password/**").permitAll()
-
-                        .requestMatchers("/api/admin/users/**").permitAll()
-                        .requestMatchers("/api/customer/**").hasRole("CUSTOMER")
-                        .requestMatchers("/api/employee/**").hasRole("EMPLOYEE")
-                        .requestMatchers("/api/manager/**").hasRole("MANAGER")
+                        // Role-specific protected endpoints
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .anyRequest().authenticated() // Enforce authentication on all other endpoints in production
+                        .requestMatchers("/api/reports/**").hasAnyRole("ADMIN", "MANAGER")
+                        .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers("/api/dashboard/**").hasAnyRole("MANAGER", "ADMIN")
+                        .requestMatchers("/api/employee/**", "/api/employees/**").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN")
+                        .requestMatchers("/api/cart/**", "/api/wishlist/**", "/api/customer/**", "/api/loyalty/**").hasRole("CUSTOMER")
+                        .requestMatchers("/api/checkout/**", "/api/payment/**").hasRole("CUSTOMER")
+
+                        // Require authentication on all other endpoints
+                        .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
