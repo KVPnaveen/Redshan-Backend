@@ -268,7 +268,34 @@ public class OrderServiceImpl implements OrderService {
             return mapToDetailsDto(order);
         }
 
+        @Override
+        @Transactional(readOnly = true)
+        public com.redshanflora.redshanflora_backend.dto.order.AdminOrderStatsDto getAdminOrderStats() {
+            long pendingCount = orderRepository.countByOrderStatus(MainOrderStatus.ORDER_CONFIRMED);
+            long processingCount = orderRepository.countByOrderStatus(MainOrderStatus.PROCESSING);
+            long completedCount = orderRepository.countByOrderStatus(MainOrderStatus.ORDER_COMPLETED)
+                    + orderRepository.countByOrderStatus(MainOrderStatus.DISPATCHED_TO_COURIER);
+
+            return com.redshanflora.redshanflora_backend.dto.order.AdminOrderStatsDto.builder()
+                    .pending(pendingCount)
+                    .processing(processingCount)
+                    .completed(completedCount)
+                    .build();
+        }
+
         private OrderSummaryDto mapToSummaryDto (Order order){
+            String customerName = "Guest User";
+            String customerEmail = "";
+            if (order.getCustomer() != null && order.getCustomer().getUser() != null) {
+                if (order.getCustomer().getUser().getName() != null) {
+                    customerName = order.getCustomer().getUser().getName();
+                }
+                if (order.getCustomer().getUser().getEmail() != null) {
+                    customerEmail = order.getCustomer().getUser().getEmail();
+                }
+            }
+
+            boolean isCustomOrder = order.getCustomizedBouquet() != null;
 
             return OrderSummaryDto.builder()
                     .orderId(order.getId())
@@ -277,11 +304,14 @@ public class OrderServiceImpl implements OrderService {
                     .orderStatus(
                             order.getOrderStatus() != null
                                     ? order.getOrderStatus().name()
-                                    : "PENDING")
+                                    : "ORDER_CONFIRMED")
                     .paymentStatus(
                             order.getPayment() != null
                                     ? order.getPayment().getPaymentStatus()
                                     : "PENDING")
+                    .customerName(customerName)
+                    .customerEmail(customerEmail)
+                    .isCustom(isCustomOrder)
                     .build();
         }
 
@@ -324,6 +354,22 @@ public class OrderServiceImpl implements OrderService {
             Customer customer = order.getCustomer();
             User user = customer != null ? customer.getUser() : null;
 
+            String managerName = "Not Assigned";
+            if (order.getOrderProcessing() != null 
+                    && order.getOrderProcessing().getUpdatedByManager() != null 
+                    && order.getOrderProcessing().getUpdatedByManager().getUser() != null) {
+                managerName = order.getOrderProcessing().getUpdatedByManager().getUser().getName();
+            }
+
+            String employeeName = "Unassigned";
+            if (order.getEmployee() != null && order.getEmployee().getUser() != null) {
+                employeeName = order.getEmployee().getUser().getName();
+            } else if (order.getOrderProcessing() != null 
+                    && order.getOrderProcessing().getUpdatedByEmployee() != null 
+                    && order.getOrderProcessing().getUpdatedByEmployee().getUser() != null) {
+                employeeName = order.getOrderProcessing().getUpdatedByEmployee().getUser().getName();
+            }
+
             OrderDetailsDto.OrderDetailsDtoBuilder builder = OrderDetailsDto.builder()
                     .orderId(order.getId())
                     .orderDate(order.getOrderDate())
@@ -331,16 +377,27 @@ public class OrderServiceImpl implements OrderService {
                     .orderStatus(
                             order.getOrderStatus() != null
                                     ? order.getOrderStatus().name()
-                                    : "PENDING")
+                                    : "ORDER_CONFIRMED")
                     .paymentStatus(
                             order.getPayment() != null
-                                    ? order.getPayment()
-                                    .getPaymentStatus()
+                                    ? order.getPayment().getPaymentStatus()
                                     : "PENDING")
+                    .paymentMethod(
+                            order.getPayment() != null && order.getPayment().getPaymentMethod() != null
+                                    ? order.getPayment().getPaymentMethod()
+                                    : "N/A")
                     .customerName(
-                            user != null ? user.getName() : "Guest")
+                            user != null ? user.getName() : "Guest User")
                     .customerEmail(
-                            user != null ? user.getEmail() : "")
+                            user != null ? user.getEmail() : "N/A")
+                    .customerPhone(
+                            user != null ? user.getPhone() : "N/A")
+                    .customerAddress(
+                            customer != null && customer.getAddress() != null ? customer.getAddress() : "N/A")
+                    .assignedManagerName(managerName)
+                    .assignedEmployeeName(employeeName)
+                    .workingStatus(
+                            order.getWorkingStatus() != null ? order.getWorkingStatus() : "Not Yet Start Working")
                     .items(itemDtos);
 
             if (order.getCustomizedBouquet() != null) {

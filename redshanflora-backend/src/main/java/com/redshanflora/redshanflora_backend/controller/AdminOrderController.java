@@ -26,6 +26,13 @@ public class AdminOrderController {
         return ResponseEntity.ok(orders);
     }
 
+    @GetMapping("/stats")
+    public ResponseEntity<com.redshanflora.redshanflora_backend.dto.order.AdminOrderStatsDto> getAdminOrderStats() {
+        log.info("Received GET request for admin/manager order stats");
+        com.redshanflora.redshanflora_backend.dto.order.AdminOrderStatsDto stats = orderService.getAdminOrderStats();
+        return ResponseEntity.ok(stats);
+    }
+
     @GetMapping("/{orderId}")
     public ResponseEntity<OrderDetailsDto> getAdminOrderDetails(@PathVariable Long orderId) {
         log.info("Received GET request for admin/manager order details: orderId={}", orderId);

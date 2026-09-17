@@ -28,6 +28,8 @@ public interface OrderService {
 
     OrderDetailsDto getAdminOrderDetails(Long orderId);
 
+    com.redshanflora.redshanflora_backend.dto.order.AdminOrderStatsDto getAdminOrderStats();
+
     List<OrderStatusDTO> getPreOrders();
 
     List<OrderStatusDTO> getProcessingOrders();
