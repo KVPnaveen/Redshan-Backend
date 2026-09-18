@@ -24,14 +24,17 @@ public class AddProductServiceImpl implements AddProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final SubCategoryRepository subCategoryRepository;
+    private final com.redshanflora.redshanflora_backend.service.NotificationSettingService notificationSettingService;
 
     public AddProductServiceImpl(ProductRepository productRepository,
                                  CategoryRepository categoryRepository,
-                                 SubCategoryRepository subCategoryRepository) {
+                                 SubCategoryRepository subCategoryRepository,
+                                 com.redshanflora.redshanflora_backend.service.NotificationSettingService notificationSettingService) {
 
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.subCategoryRepository = subCategoryRepository;
+        this.notificationSettingService = notificationSettingService;
     }
 
     @Override
@@ -80,6 +83,7 @@ public class AddProductServiceImpl implements AddProductService {
         product.setImageUrl(imageUrl);
 
         Product savedProduct = productRepository.save(product);
+        notificationSettingService.checkAndNotifyLowStock(savedProduct);
 
         return mapToResponse(savedProduct);
     }

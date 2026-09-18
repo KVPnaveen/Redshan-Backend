@@ -28,6 +28,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
     private final SubCategoryRepository subCategoryRepository;
+    private final com.redshanflora.redshanflora_backend.service.NotificationSettingService notificationSettingService;
 
     @Override
     public List<ProductResponse> getAllProducts() {
@@ -119,6 +120,7 @@ public class ProductServiceImpl implements ProductService {
                 .build();
 
         Product savedProduct = productRepository.save(product);
+        notificationSettingService.checkAndNotifyLowStock(savedProduct);
         return mapToResponse(savedProduct);
     }
 
@@ -151,6 +153,7 @@ public class ProductServiceImpl implements ProductService {
         }
 
         Product updatedProduct = productRepository.save(product);
+        notificationSettingService.checkAndNotifyLowStock(updatedProduct);
         return mapToResponse(updatedProduct);
     }
 
@@ -259,6 +262,7 @@ public class ProductServiceImpl implements ProductService {
 
         // Save to database
         productRepository.save(product);
+        notificationSettingService.checkAndNotifyLowStock(product);
     }
 
     @Override
@@ -288,6 +292,7 @@ public class ProductServiceImpl implements ProductService {
         }
 
         Product savedProduct = productRepository.save(product);
+        notificationSettingService.checkAndNotifyLowStock(savedProduct);
         return mapToResponse(savedProduct);
     }
 }
