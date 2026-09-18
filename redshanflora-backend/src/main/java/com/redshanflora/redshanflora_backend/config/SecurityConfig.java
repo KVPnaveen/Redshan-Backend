@@ -44,7 +44,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/dashboard/**").hasAnyRole("MANAGER", "ADMIN")
                         .requestMatchers("/api/employee/**", "/api/employees/**").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN")
                         .requestMatchers("/api/cart/**", "/api/wishlist/**", "/api/customer/**", "/api/loyalty/**").hasRole("CUSTOMER")
-                        .requestMatchers("/api/checkout/**", "/api/payment/**").hasRole("CUSTOMER")
+                        .requestMatchers("/api/checkout/**", "/api/payment/**", "/api/customized-bouquets/**").hasRole("CUSTOMER")
 
                         // Require authentication on all other endpoints
                         .anyRequest().authenticated()
@@ -75,7 +75,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/dashboard/**").hasAnyRole("MANAGER", "ADMIN")
                         .requestMatchers("/api/employee/**", "/api/employees/**").hasAnyRole("EMPLOYEE", "MANAGER", "ADMIN")
                         .requestMatchers("/api/cart/**", "/api/wishlist/**", "/api/customer/**", "/api/loyalty/**").hasRole("CUSTOMER")
-                        .requestMatchers("/api/checkout/**", "/api/payment/**").hasRole("CUSTOMER")
+                        .requestMatchers("/api/checkout/**", "/api/payment/**", "/api/customized-bouquets/**").hasRole("CUSTOMER")
 
                         // Require authentication on all other endpoints
                         .anyRequest().authenticated()

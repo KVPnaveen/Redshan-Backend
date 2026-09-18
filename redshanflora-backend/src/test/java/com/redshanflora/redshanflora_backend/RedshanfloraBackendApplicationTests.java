@@ -305,29 +305,77 @@ class RedshanfloraBackendApplicationTests {
 	}
 
 	@Autowired
-	private com.redshanflora.redshanflora_backend.controller.AdminReportController adminReportController;
+	private com.redshanflora.redshanflora_backend.controller.CustomizedBouquetController customizedBouquetController;
+
+	@Autowired
+	private com.redshanflora.redshanflora_backend.repository.OrderRepository orderRepository;
+
+	@Autowired
+	private com.redshanflora.redshanflora_backend.repository.CustomerRepository customerRepository;
 
 	@Test
-	void testGetDashboardData() {
+	void testCustomizedBouquetImageUploadValidationAndSuccess() throws Exception {
+		// 1. Create dummy Customer and Order
+		User user = User.builder()
+				.name("Upload Tester")
+				.email("upload.tester@example.com")
+				.password("password")
+				.role(Role.CUSTOMER)
+				.build();
+		user = userRepository.save(user);
 
-		ResponseEntity<Map<String, Object>> response = adminReportController.getDashboardData("last30days", null, null);
+		com.redshanflora.redshanflora_backend.entity.Customer customer = com.redshanflora.redshanflora_backend.entity.Customer.builder()
+				.user(user)
+				.build();
+		customer = customerRepository.save(customer);
 
-	
-		assertNotNull(response);
-		assertEquals(200, response.getStatusCode().value());
-		Map<String, Object> body = response.getBody();
+		com.redshanflora.redshanflora_backend.entity.Order order = com.redshanflora.redshanflora_backend.entity.Order.builder()
+				.customer(customer)
+				.totalAmount(java.math.BigDecimal.valueOf(100.0))
+				.build();
+		order = orderRepository.save(order);
+
+		Long customerId = customer.getId();
+		Long orderId = order.getId();
+
+		// Test 1: Reject empty file
+		org.springframework.mock.web.MockMultipartFile emptyFile = new org.springframework.mock.web.MockMultipartFile(
+				"image", "empty.png", "image/png", new byte[0]);
+		ResponseEntity<?> emptyRes = customizedBouquetController.uploadCustomizedBouquetImage(emptyFile, customerId, orderId);
+		assertEquals(400, emptyRes.getStatusCode().value());
+
+		// Test 2: Reject unsafe file format (.txt)
+		org.springframework.mock.web.MockMultipartFile textFile = new org.springframework.mock.web.MockMultipartFile(
+				"image", "malicious.txt", "text/plain", "hello".getBytes());
+		ResponseEntity<?> textRes = customizedBouquetController.uploadCustomizedBouquetImage(textFile, customerId, orderId);
+		assertEquals(400, textRes.getStatusCode().value());
+
+		// Test 3: Reject order/customer mismatch
+		org.springframework.mock.web.MockMultipartFile validPng = new org.springframework.mock.web.MockMultipartFile(
+				"image", "bouquet.png", "image/png", "fake-image-bytes".getBytes());
+		ResponseEntity<?> mismatchRes = customizedBouquetController.uploadCustomizedBouquetImage(validPng, customerId + 999, orderId);
+		assertEquals(403, mismatchRes.getStatusCode().value());
+
+		// Test 4: Successful upload
+		ResponseEntity<?> successRes = customizedBouquetController.uploadCustomizedBouquetImage(validPng, customerId, orderId);
+		assertEquals(200, successRes.getStatusCode().value());
+
+		com.redshanflora.redshanflora_backend.dto.customized.CustomizedBouquetUploadResponseDTO body =
+				(com.redshanflora.redshanflora_backend.dto.customized.CustomizedBouquetUploadResponseDTO) successRes.getBody();
 		assertNotNull(body);
-		assertTrue(body.containsKey("dailyRevenue"));
-		assertTrue(body.containsKey("weeklyRevenue"));
-		assertTrue(body.containsKey("monthlyRevenue"));
-		assertTrue(body.containsKey("dailyChange"));
-		assertTrue(body.containsKey("weeklyChange"));
-		assertTrue(body.containsKey("monthlyChange"));
-		assertTrue(body.containsKey("customers"));
-		assertTrue(body.containsKey("orders"));
-		assertTrue(body.containsKey("categoryPerformance"));
-		assertTrue(body.containsKey("revenueGrowth"));
-		assertTrue(body.containsKey("topProducts"));
+		assertEquals(customerId, body.getCustomerId());
+		assertEquals(orderId, body.getOrderId());
+		assertTrue(body.getFileName().startsWith("customer_" + customerId + "_order_" + orderId + "_"));
+		assertTrue(body.getFileName().endsWith(".png"));
+		assertEquals("uploads/custom-bouquets/" + body.getFileName(), body.getRelativePath());
+
+		// Verify file existence on disk
+		java.nio.file.Path savedFilePath = java.nio.file.Paths.get("uploads", "custom-bouquets", body.getFileName());
+		assertTrue(java.nio.file.Files.exists(savedFilePath));
+
+		// Cleanup test file
+		java.nio.file.Files.deleteIfExists(savedFilePath);
 	}
 }
+
 
