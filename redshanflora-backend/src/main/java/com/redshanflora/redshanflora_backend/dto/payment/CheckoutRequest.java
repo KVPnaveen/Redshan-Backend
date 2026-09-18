@@ -13,4 +13,21 @@ public class CheckoutRequest {
     private List<CartItemDto> items;
     private String currency;
     private Double discountAmount;
+    private CustomerDetailsPayload customerDetails;
+    private String address;
+    private String phone;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class CustomerDetailsPayload {
+        private String firstName;
+        private String lastName;
+        private String address;
+        private String city;
+        private String postalCode;
+        private String phone;
+        private String email;
+        private String deliveryDate;
+    }
 }
