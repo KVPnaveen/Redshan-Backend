@@ -42,13 +42,13 @@ public class WebConfig implements WebMvcConfigurer {
     private Path resolveUploadDir() {
         String currentDir = System.getProperty("user.dir");
 
-        // Option A: If opened from 'Redshan-Backend' (like your friend)
+        // Option A: If opened from 'Redshan-Backend'
         Path optionA = Paths.get(currentDir, "redshanflora-backend", "uploads");
         if (optionA.toFile().exists()) {
             return optionA.toAbsolutePath().normalize();
         }
 
-        // Option B: If opened directly from 'redshanflora-backend' (like you)
+        // Option B: If opened directly from 'redshanflora-backend'
         Path optionB = Paths.get(currentDir, "uploads");
         if (optionB.toFile().exists()) {
             return optionB.toAbsolutePath().normalize();

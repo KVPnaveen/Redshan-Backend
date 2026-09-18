@@ -78,6 +78,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         List<Order> orders = orderRepository.findFinishedOrdersWithEmployee();
 
         return orders.stream()
+                .filter(order -> !"Completed".equalsIgnoreCase(order.getWorkingStatus()))
                 .map(order -> AssignedEmployeeDTO.builder()
                         .employeeId(order.getEmployee().getId())
                         .employeeName(order.getEmployee().getUser().getName())

@@ -109,4 +109,15 @@ public class ProductController {
                     .build();
         }
     }
+
+    @RequestMapping(value = "/{id}/update", method = {RequestMethod.POST, RequestMethod.PUT}, consumes = org.springframework.http.MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ProductResponse> updateProductWithImage(
+            @PathVariable Long id,
+            @RequestParam(value = "price", required = false) java.math.BigDecimal price,
+            @RequestParam(value = "stockQuantity", required = false) Integer stockQuantity,
+            @RequestParam(value = "image", required = false) org.springframework.web.multipart.MultipartFile image) {
+
+        ProductResponse response = productService.updateProductWithImage(id, price, stockQuantity, image);
+        return ResponseEntity.ok(response);
+    }
 }

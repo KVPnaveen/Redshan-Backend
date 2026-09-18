@@ -20,6 +20,5 @@ public interface ProductService {
     void deleteProduct(Long id);
     void updateProductPrice(Long productId, ProductPriceUpdateDTO dto);
     void updateQuantity(Long productId, Integer quantity);
-
-
+    ProductResponse updateProductWithImage(Long id, java.math.BigDecimal price, Integer stockQuantity, org.springframework.web.multipart.MultipartFile image);
 }
