@@ -17,6 +17,7 @@ import java.util.Map;
 public class AdminReportController {
 
     private final AdminReportService adminReportService;
+    private final com.redshanflora.redshanflora_backend.service.NotificationSettingService notificationSettingService;
 
     @GetMapping("/dashboard")
     public ResponseEntity<Map<String, Object>> getDashboardData(
@@ -41,6 +42,17 @@ public class AdminReportController {
         log.info("Received request to export PDF report for period: {}", period);
         byte[] pdfBytes = adminReportService.generatePdfReport(period);
         
+        try {
+            notificationSettingService.createNotificationForAdmins(
+                "REPORT_DOWNLOADED",
+                "Analytics Report Exported",
+                "Analytics report (" + period + ") was exported and downloaded.",
+                null
+            );
+        } catch (Exception e) {
+            log.warn("Could not send notification for report export: {}", e.getMessage());
+        }
+
         return ResponseEntity.ok()
                 .header("Content-Type", "application/pdf")
                 .header("Content-Disposition", "attachment; filename=\"RedShan360-Analytics-Report.pdf\"")
