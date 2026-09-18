@@ -44,6 +44,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final BouquetPricingService bouquetPricingService;
     private final BouquetSnapshotService bouquetSnapshotService;
     private final CustomizedBouquetRepository customizedBouquetRepository;
+    private final com.redshanflora.redshanflora_backend.service.NotificationSettingService notificationSettingService;
 
     @Value("${payhere.merchant-id}")
     private String merchantId;
@@ -127,6 +128,27 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
         order = orderRepository.save(order);
 
+        try {
+            String custName = (customer != null && customer.getUser() != null) ? customer.getUser().getName() : "Customer";
+            notificationSettingService.createNotificationForAdmins(
+                "NEW_ORDER",
+                "Instant Order Notification",
+                "Customer " + custName + " placed a new order #" + order.getId() + " ($" + authoritativeTotal + ").",
+                order.getId()
+            );
+            if (customer != null && customer.getUser() != null) {
+                notificationSettingService.createNotificationForUser(
+                    customer.getUser(),
+                    "NEW_ORDER",
+                    "Order Confirmed",
+                    "Your order #" + order.getId() + " ($" + authoritativeTotal + ") has been successfully placed.",
+                    order.getId()
+                );
+            }
+        } catch (Exception e) {
+            log.warn("Could not send notifications for order #{}: {}", order.getId(), e.getMessage());
+        }
+
         // 4. Persist OrderProcessing in database
         OrderProcessing processing = OrderProcessing.builder()
                 .order(order)
@@ -150,6 +172,7 @@ public class PaymentServiceImpl implements PaymentService {
 
                 product.setStockQuantity(currentStock - requestedQty);
                 productRepository.save(product);
+                notificationSettingService.checkAndNotifyLowStock(product);
 
                 OrderItem orderItem = OrderItem.builder()
                         .order(order)
