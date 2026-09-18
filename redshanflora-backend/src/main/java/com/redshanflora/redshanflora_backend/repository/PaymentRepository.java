@@ -12,17 +12,21 @@ import java.time.Instant;
 @Repository
 public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
-    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Payment p JOIN p.order o " +
-           "WHERE LOWER(p.paymentStatus) = :status AND p.paymentDate >= :startDate")
+    @Query("SELECT COALESCE(SUM(COALESCE(p.amount, o.totalAmount)), 0) FROM Payment p JOIN p.order o " +
+           "WHERE LOWER(p.paymentStatus) = :status AND (p.paymentDate IS NULL OR p.paymentDate >= :startDate)")
     BigDecimal sumTotalAmountByPaymentStatusAndPaymentDateAfter(
             @Param("status") String status, 
             @Param("startDate") Instant startDate);
 
-    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Payment p JOIN p.order o " +
-           "WHERE LOWER(p.paymentStatus) = :status AND p.paymentDate >= :startDate AND p.paymentDate < :endDate")
+    @Query("SELECT COALESCE(SUM(COALESCE(p.amount, o.totalAmount)), 0) FROM Payment p JOIN p.order o " +
+           "WHERE LOWER(p.paymentStatus) = :status AND (p.paymentDate IS NULL OR (p.paymentDate >= :startDate AND p.paymentDate < :endDate))")
     BigDecimal sumTotalAmountByPaymentStatusAndPaymentDateBetween(
             @Param("status") String status, 
             @Param("startDate") Instant startDate,
             @Param("endDate") Instant endDate);
+
+    @Query("SELECT COALESCE(SUM(COALESCE(p.amount, o.totalAmount)), 0) FROM Payment p JOIN p.order o " +
+           "WHERE LOWER(p.paymentStatus) = :status")
+    BigDecimal sumTotalAmountByPaymentStatus(@Param("status") String status);
 }
 

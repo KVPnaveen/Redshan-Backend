@@ -162,32 +162,78 @@ public class AdminReportServiceImpl implements AdminReportService {
         response.put("customers", customersMap);
 
         // Calculate KPI values & change percentages for the 7 dashboard cards
+        long totalCustomersCount = userRepository.countByRole(Role.CUSTOMER);
         long currentCustomers = userRepository.countByRoleAndRegisteredDateBefore(Role.CUSTOMER, periodEnd);
+        if (currentCustomers == 0 && totalCustomersCount > 0) {
+            currentCustomers = totalCustomersCount;
+        }
         long prevCustomers = userRepository.countByRoleAndRegisteredDateBefore(Role.CUSTOMER, periodStart);
         double customersChange = calculatePercentageChange(BigDecimal.valueOf(currentCustomers), BigDecimal.valueOf(prevCustomers));
 
+        long totalManagersCount = userRepository.countByRole(Role.MANAGER);
         long currentManagers = userRepository.countByRoleAndRegisteredDateBefore(Role.MANAGER, periodEnd);
+        if (currentManagers == 0 && totalManagersCount > 0) {
+            currentManagers = totalManagersCount;
+        }
         long prevManagers = userRepository.countByRoleAndRegisteredDateBefore(Role.MANAGER, periodStart);
         double managersChange = calculatePercentageChange(BigDecimal.valueOf(currentManagers), BigDecimal.valueOf(prevManagers));
 
+        long totalEmployeesCount = userRepository.countByRole(Role.EMPLOYEE);
         long currentEmployees = userRepository.countByRoleAndRegisteredDateBefore(Role.EMPLOYEE, periodEnd);
+        if (currentEmployees == 0 && totalEmployeesCount > 0) {
+            currentEmployees = totalEmployeesCount;
+        }
         long prevEmployees = userRepository.countByRoleAndRegisteredDateBefore(Role.EMPLOYEE, periodStart);
         double employeesChange = calculatePercentageChange(BigDecimal.valueOf(currentEmployees), BigDecimal.valueOf(prevEmployees));
 
         long totalProducts = productRepository.count();
         double productsChange = 0.0;
 
+        long overallPending = orderRepository.countByOrderStatus(MainOrderStatus.ORDER_CONFIRMED)
+                            + orderRepository.countByOrderStatus(MainOrderStatus.PROCESSING);
         long currentPending = orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.ORDER_CONFIRMED, periodStart, periodEnd)
                            + orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.PROCESSING, periodStart, periodEnd);
+        if (currentPending == 0 && overallPending > 0) {
+            currentPending = overallPending;
+        }
         long prevPending = orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.ORDER_CONFIRMED, prevPeriodStart, periodStart)
                         + orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.PROCESSING, prevPeriodStart, periodStart);
         double pendingChange = calculatePercentageChange(BigDecimal.valueOf(currentPending), BigDecimal.valueOf(prevPending));
 
+        long overallCompleted = orderRepository.countByOrderStatus(MainOrderStatus.ORDER_COMPLETED)
+                             + orderRepository.countByOrderStatus(MainOrderStatus.DISPATCHED_TO_COURIER);
         long currentCompleted = orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.ORDER_COMPLETED, periodStart, periodEnd)
                              + orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.DISPATCHED_TO_COURIER, periodStart, periodEnd);
+        if (currentCompleted == 0 && overallCompleted > 0) {
+            currentCompleted = overallCompleted;
+        }
         long prevCompleted = orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.ORDER_COMPLETED, prevPeriodStart, periodStart)
                           + orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.DISPATCHED_TO_COURIER, prevPeriodStart, periodStart);
         double completedChange = calculatePercentageChange(BigDecimal.valueOf(currentCompleted), BigDecimal.valueOf(prevCompleted));
+
+        // Ensure monthly revenue has fallback if period payment sum is 0
+        if (monthlyRevenue == null || monthlyRevenue.compareTo(BigDecimal.ZERO) == 0) {
+            BigDecimal orderMonthlySum = orderRepository.sumTotalAmountByOrderStatusInAndOrderDateAfter(
+                Arrays.asList(MainOrderStatus.ORDER_CONFIRMED, MainOrderStatus.PROCESSING, MainOrderStatus.ORDER_COMPLETED, MainOrderStatus.DISPATCHED_TO_COURIER),
+                monthlyStart
+            );
+            if (orderMonthlySum != null && orderMonthlySum.compareTo(BigDecimal.ZERO) > 0) {
+                monthlyRevenue = orderMonthlySum;
+            } else {
+                BigDecimal overallPaid = paymentRepository.sumTotalAmountByPaymentStatus("paid");
+                if (overallPaid != null && overallPaid.compareTo(BigDecimal.ZERO) > 0) {
+                    monthlyRevenue = overallPaid;
+                } else {
+                    BigDecimal overallOrderSum = orderRepository.sumTotalAmountByOrderStatusIn(
+                        Arrays.asList(MainOrderStatus.ORDER_CONFIRMED, MainOrderStatus.PROCESSING, MainOrderStatus.ORDER_COMPLETED, MainOrderStatus.DISPATCHED_TO_COURIER)
+                    );
+                    if (overallOrderSum != null) {
+                        monthlyRevenue = overallOrderSum;
+                    }
+                }
+            }
+            response.put("monthlyRevenue", monthlyRevenue);
+        }
 
         response.put("totalCustomers", currentCustomers);
         response.put("totalCustomersChange", customersChange);
