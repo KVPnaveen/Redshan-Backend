@@ -33,7 +33,6 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/uploads/**", "/models/**").permitAll()
                         .requestMatchers("/api/payment/notify", "/api/checkout/notify").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**", "/api/categories/**", "/api/subcategories/**").permitAll()
                         .requestMatchers("/uploads/**", "/models/**").permitAll()
@@ -65,7 +64,6 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/uploads/**", "/models/**").permitAll()
                         .requestMatchers("/api/payment/notify", "/api/checkout/notify").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**", "/api/categories/**", "/api/subcategories/**").permitAll()
                         .requestMatchers("/uploads/**", "/models/**").permitAll()
