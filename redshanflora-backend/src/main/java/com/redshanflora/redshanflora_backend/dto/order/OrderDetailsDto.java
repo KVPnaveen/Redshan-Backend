@@ -19,8 +19,14 @@ public class OrderDetailsDto {
     private BigDecimal totalAmount;
     private String orderStatus;
     private String paymentStatus;
+    private String paymentMethod;
     private String customerName;
     private String customerEmail;
+    private String customerPhone;
+    private String customerAddress;
+    private String assignedManagerName;
+    private String assignedEmployeeName;
+    private String workingStatus;
     private List<OrderItemResponseDto> items;
     private BouquetSnapshotDto bouquetSnapshot;
 }

@@ -26,7 +26,7 @@ public class AdminUserRequest {
     private String password;
 
     @NotBlank(message = "Phone number is required")
-    @Pattern(regexp = "^[0-9]{9,15}$", message = "Phone number must be between 9 and 15 digits")
+    @Pattern(regexp = "^[0-9+\\-\\s()]{7,20}$", message = "Phone number must be between 7 and 20 valid characters")
     private String phone;
 
     private String role;

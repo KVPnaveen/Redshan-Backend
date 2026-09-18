@@ -36,9 +36,10 @@ public class SecurityConfig {
                         .requestMatchers("/uploads/**", "/models/**").permitAll()
                         .requestMatchers("/api/payment/notify", "/api/checkout/notify").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**", "/api/categories/**", "/api/subcategories/**").permitAll()
+                        .requestMatchers("/uploads/**", "/models/**").permitAll()
 
                         // Role-specific protected endpoints
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "MANAGER")
                         .requestMatchers("/api/reports/**").hasAnyRole("ADMIN", "MANAGER")
                         .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")
                         .requestMatchers("/api/dashboard/**").hasAnyRole("MANAGER", "ADMIN")
@@ -67,9 +68,10 @@ public class SecurityConfig {
                         .requestMatchers("/uploads/**", "/models/**").permitAll()
                         .requestMatchers("/api/payment/notify", "/api/checkout/notify").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**", "/api/categories/**", "/api/subcategories/**").permitAll()
+                        .requestMatchers("/uploads/**", "/models/**").permitAll()
 
                         // Role-specific protected endpoints
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "MANAGER")
                         .requestMatchers("/api/reports/**").hasAnyRole("ADMIN", "MANAGER")
                         .requestMatchers("/api/manager/**").hasAnyRole("MANAGER", "ADMIN")
                         .requestMatchers("/api/dashboard/**").hasAnyRole("MANAGER", "ADMIN")
