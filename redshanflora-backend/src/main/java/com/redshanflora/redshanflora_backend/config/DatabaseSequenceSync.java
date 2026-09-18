@@ -28,6 +28,15 @@ public class DatabaseSequenceSync implements CommandLineRunner {
             String sql = "SELECT setval(pg_get_serial_sequence('\"users\"', 'user_id'), COALESCE((SELECT MAX(user_id) FROM \"users\"), 0) + 1, false)";
             jdbcTemplate.execute(sql);
             log.info("PostgreSQL sequence for 'user' table has been synchronized successfully.");
+
+            // Ensure 'address' and 'phone' columns exist on the "order" table
+            try {
+                jdbcTemplate.execute("ALTER TABLE \"order\" ADD COLUMN IF NOT EXISTS address VARCHAR(500)");
+                jdbcTemplate.execute("ALTER TABLE \"order\" ADD COLUMN IF NOT EXISTS phone VARCHAR(50)");
+                log.info("Ensured 'address' and 'phone' columns exist in 'order' table.");
+            } catch (Exception ex) {
+                log.warn("Could not alter 'order' table for address/phone columns", ex);
+            }
         } catch (Exception e) {
             log.error("Failed to synchronize PostgreSQL sequence for 'user' table", e);
         }

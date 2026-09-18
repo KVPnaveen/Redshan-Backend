@@ -391,9 +391,9 @@ public class OrderServiceImpl implements OrderService {
                     .customerEmail(
                             user != null ? user.getEmail() : "N/A")
                     .customerPhone(
-                            user != null ? user.getPhone() : "N/A")
+                            order.getPhone() != null && !order.getPhone().isBlank() ? order.getPhone() : (user != null ? user.getPhone() : "N/A"))
                     .customerAddress(
-                            customer != null && customer.getAddress() != null ? customer.getAddress() : "N/A")
+                            order.getAddress() != null && !order.getAddress().isBlank() ? order.getAddress() : (customer != null && customer.getAddress() != null ? customer.getAddress() : "N/A"))
                     .assignedManagerName(managerName)
                     .assignedEmployeeName(employeeName)
                     .workingStatus(
@@ -469,6 +469,8 @@ public class OrderServiceImpl implements OrderService {
                     .totalAmount(order.getTotalAmount())
                     .mainStatus(order.getOrderStatus() != null ? order.getOrderStatus().name() : "PENDING")
                     .currentSubStatus(currentSubStatus)
+                    .address(order.getAddress())
+                    .phone(order.getPhone())
                     .items(itemDtos)
                     .build());
         }

@@ -116,12 +116,48 @@ public class PaymentServiceImpl implements PaymentService {
         BigDecimal authoritativeTotal = totalAmount.setScale(MONEY_SCALE, MONEY_ROUNDING);
         String payHereAmount = authoritativeTotal.toPlainString();
 
-        // 2. Resolve Customer record
+        // 2. Resolve Customer record & Address/Phone details
         Customer customer = resolveCustomer();
 
-        // 3. Persist Order in database
+        String orderAddress = null;
+        String orderPhone = null;
+
+        if (request.getCustomerDetails() != null) {
+            String addr = request.getCustomerDetails().getAddress();
+            String city = request.getCustomerDetails().getCity();
+            if (addr != null && !addr.trim().isEmpty()) {
+                orderAddress = addr.trim() + (city != null && !city.trim().isEmpty() ? ", " + city.trim() : "");
+            }
+            if (request.getCustomerDetails().getPhone() != null && !request.getCustomerDetails().getPhone().trim().isEmpty()) {
+                orderPhone = request.getCustomerDetails().getPhone().trim();
+            }
+        }
+
+        if ((orderAddress == null || orderAddress.isBlank()) && request.getAddress() != null && !request.getAddress().trim().isEmpty()) {
+            orderAddress = request.getAddress().trim();
+        }
+
+        if ((orderPhone == null || orderPhone.isBlank()) && request.getPhone() != null && !request.getPhone().trim().isEmpty()) {
+            orderPhone = request.getPhone().trim();
+        }
+
+        // Update customer profile fallback address & phone if available
+        if (customer != null) {
+            if (orderAddress != null && !orderAddress.isBlank()) {
+                customer.setAddress(orderAddress);
+                customerRepository.save(customer);
+            }
+            if (orderPhone != null && !orderPhone.isBlank() && customer.getUser() != null) {
+                customer.getUser().setPhone(orderPhone);
+                userRepository.save(customer.getUser());
+            }
+        }
+
+        // 3. Persist Order in database (saving Address and Phone columns)
         Order order = Order.builder()
                 .customer(customer)
+                .address(orderAddress)
+                .phone(orderPhone)
                 .totalAmount(authoritativeTotal)
                 .orderStatus(MainOrderStatus.ORDER_CONFIRMED)
                 .workingStatus("Not Yet Start Working")
