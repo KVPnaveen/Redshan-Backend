@@ -175,6 +175,7 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
         Integer numberOfFlowers = 0;
         String bouquetStyle = customizedBouquet.getBouquetStyle();
         String snapshot = customizedBouquet.getCustomBouquetSnapshot();
+        Map<String, Integer> flowerQuantities = new LinkedHashMap<>();
 
         //------------------ READ SNAPSHOT ----------------------------------------------
 
@@ -202,8 +203,11 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
                         String productName = flower.path("productName").asText(null);
                         int quantity = flower.path("quantity").asInt(0);
 
-                        if (productName != null && !productName.isBlank() && !flowerNames.contains(productName)) {
-                            flowerNames.add(productName);
+                        if (productName != null && !productName.isBlank()) {
+                            flowerQuantities.put(productName, quantity);
+                            if (!flowerNames.contains(productName)) {
+                                flowerNames.add(productName);
+                            }
                         }
                         totalFlowers += quantity;
                     }
@@ -245,6 +249,7 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
                 .flowerType(flowerType)
                 .numberOfFlowers(numberOfFlowers)
                 .bouquetStyle(bouquetStyle)
+                .flowerQuantities(flowerQuantities)
                 .build();
     }
 
@@ -350,9 +355,87 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
                 employeeId,
                 MainOrderStatus.ORDER_COMPLETED
         );
-        return convertCustomizedOrdersToTaskDTO(orders);
-    }
 
+        List<AssignedTaskDTO> response = new ArrayList<>();
+
+        for (Order order : orders) {
+            Long orderId = order.getId();
+            CustomizedBouquet customizedBouquet = customizedBouquetRepository.findByOrder(order).orElse(null);
+
+            if (customizedBouquet == null) {
+                response.add(
+                        AssignedTaskDTO.builder()
+                                .orderId(orderId)
+                                .numberOfItems(0L)
+                                .totalQuantity(0L)
+                                .items(new ArrayList<>())
+                                .build()
+                );
+                continue;
+            }
+
+            // 1. Extract flower breakdown and style from snapshot JSON
+            Map<String, Integer> flowerQuantities = new LinkedHashMap<>();
+            int totalFlowerCount = 0;
+            String bouquetStyle = customizedBouquet.getBouquetStyle();
+            String snapshot = customizedBouquet.getCustomBouquetSnapshot();
+
+            if (snapshot != null && !snapshot.isBlank()) {
+                try {
+                    JsonNode root = objectMapper.readTree(snapshot);
+
+                    if (root.hasNonNull("bouquetStyle")) {
+                        String snapshotStyle = root.path("bouquetStyle").asText(null);
+                        if (snapshotStyle != null && !snapshotStyle.isBlank()) {
+                            bouquetStyle = snapshotStyle;
+                        }
+                    }
+
+                    JsonNode flowerSummary = root.path("flowerSummary");
+                    if (flowerSummary.isArray()) {
+                        for (JsonNode flower : flowerSummary) {
+                            String productName = flower.path("productName").asText(null);
+                            int quantity = flower.path("quantity").asInt(0);
+
+                            if (productName != null && !productName.isBlank()) {
+                                flowerQuantities.put(productName, quantity);
+                            }
+                            totalFlowerCount += quantity;
+                        }
+                    }
+                } catch (Exception e) {
+                    // Log or handle JSON parse error if needed
+                }
+            }
+
+            // 2. Build the customized item DTO
+            CustomizedOrderItemDTO itemDTO = CustomizedOrderItemDTO.builder()
+                    .itemId(customizedBouquet.getId())
+                    .itemName("Customized Bouquet")
+                    .quantity(totalFlowerCount)
+                    .status(SubStatus.COMPLETED.name())
+                    .flowerType(String.join(", ", flowerQuantities.keySet()))
+                    .numberOfFlowers(totalFlowerCount)
+                    .bouquetStyle(bouquetStyle != null ? bouquetStyle : "N/A")
+                    .flowerQuantities(flowerQuantities)
+                    .build();
+
+            List<CustomizedOrderItemDTO> items = new ArrayList<>();
+            items.add(itemDTO);
+
+            // 3. Build task DTO for this completed order
+            AssignedTaskDTO taskDTO = AssignedTaskDTO.builder()
+                    .orderId(orderId)
+                    .numberOfItems(1L)
+                    .totalQuantity((long) totalFlowerCount)
+                    .items(items)
+                    .build();
+
+            response.add(taskDTO);
+        }
+
+        return response;
+    }
 
     //--------------------------------AI
     // noemal orders
