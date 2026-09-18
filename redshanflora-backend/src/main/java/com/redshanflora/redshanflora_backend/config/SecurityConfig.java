@@ -24,6 +24,14 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final CorsConfigurationSource corsConfigurationSource;
 
+    private static final String[] SWAGGER_WHITELIST = {
+            "/v3/api-docs/**",
+            "/swagger-ui/**",
+            "/swagger-ui.html",
+            "/swagger-resources/**",
+            "/webjars/**"
+    };
+
     @Bean
     @Profile("!prod")
     public SecurityFilterChain devSecurityFilterChain(HttpSecurity http) throws Exception {
@@ -31,6 +39,9 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                        // Swagger UI & API docs
+                        .requestMatchers(SWAGGER_WHITELIST).permitAll()
+
                         // Public endpoints
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/payment/notify", "/api/checkout/notify").permitAll()
@@ -62,6 +73,9 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                        // Swagger UI & API docs (Omit if Swagger shouldn't be accessible in prod)
+                        .requestMatchers(SWAGGER_WHITELIST).permitAll()
+
                         // Public endpoints
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/payment/notify", "/api/checkout/notify").permitAll()
