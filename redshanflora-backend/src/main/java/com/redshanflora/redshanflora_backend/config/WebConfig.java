@@ -44,7 +44,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .addResourceLocations(uploadUri + "models/", "file:///" + uploadPathStr + "models/", "file:" + uploadPathStr + "models/");
     }
 
-    private Path resolveUploadDir() {
+    public static Path resolveUploadDir() {
         String currentDir = System.getProperty("user.dir");
 
         // Option A: If opened from 'Redshan-Backend'

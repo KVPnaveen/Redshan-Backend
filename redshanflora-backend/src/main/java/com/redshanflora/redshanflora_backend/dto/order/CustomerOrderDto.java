@@ -18,5 +18,7 @@ public class CustomerOrderDto {
     private BigDecimal totalAmount;
     private String mainStatus;
     private String currentSubStatus;
+    private String address;
+    private String phone;
     private List<CustomerOrderItemDto> items;
 }

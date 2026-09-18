@@ -24,7 +24,11 @@ public class Order {
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
 
+    @Column(name = "address", length = 500)
+    private String address;
 
+    @Column(name = "phone", length = 50)
+    private String phone;
 
     @Column(name = "order_date", nullable = false, updatable = false)
     private Instant orderDate;
