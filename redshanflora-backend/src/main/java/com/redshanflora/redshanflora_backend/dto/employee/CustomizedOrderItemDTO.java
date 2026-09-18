@@ -2,31 +2,24 @@ package com.redshanflora.redshanflora_backend.dto.employee;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-@Getter
-@Setter
+import java.util.Map;
+
+@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class CustomizedOrderItemDTO {
 
     private Long itemId;
-
-
     private String itemName;
-
     private Integer quantity;
-
     private String status;
-
     private String flowerType;
-
     private Integer numberOfFlowers;
-
     private String bouquetStyle;
-
+    private Map<String, Integer> flowerQuantities;
 
 }
