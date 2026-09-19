@@ -22,4 +22,5 @@ public class AdminUserResponse {
     private Long employeeId;
     private Long customerId;
     private Instant promoteDate;
+    private java.util.List<UserOrderSummaryDto> orderHistory;
 }

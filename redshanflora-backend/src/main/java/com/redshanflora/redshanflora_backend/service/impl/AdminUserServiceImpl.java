@@ -32,6 +32,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final ManagerRepository managerRepository;
     private final EmployeeRepository employeeRepository;
     private final CustomerRepository customerRepository;
+    private final com.redshanflora.redshanflora_backend.repository.OrderRepository orderRepository;
     private final PasswordEncoder passwordEncoder;
     private final com.redshanflora.redshanflora_backend.service.ActivityLogService activityLogService;
 
@@ -287,6 +288,19 @@ public class AdminUserServiceImpl implements AdminUserService {
             customerRepository.findByUser_Id(user.getId()).ifPresent(c -> {
                 builder.customerId(c.getId());
                 builder.promoteDate(c.getPromoteDate());
+
+                List<com.redshanflora.redshanflora_backend.entity.Order> customerOrders = orderRepository.findByCustomerOrderByOrderDateDesc(c);
+                List<com.redshanflora.redshanflora_backend.dto.admin.UserOrderSummaryDto> orderSummaries = customerOrders.stream()
+                        .map(o -> com.redshanflora.redshanflora_backend.dto.admin.UserOrderSummaryDto.builder()
+                                .id(o.getId())
+                                .orderCode("#RS-" + o.getId())
+                                .orderDate(o.getOrderDate())
+                                .totalAmount(o.getTotalAmount())
+                                .orderStatus(o.getOrderStatus() != null ? o.getOrderStatus().name() : "PENDING")
+                                .workingStatus(o.getWorkingStatus())
+                                .build())
+                        .collect(Collectors.toList());
+                builder.orderHistory(orderSummaries);
             });
         } else if (user.getRole() == Role.MANAGER) {
             managerRepository.findByUser_Id(user.getId()).ifPresent(m -> {
