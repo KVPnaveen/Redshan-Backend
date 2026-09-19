@@ -33,6 +33,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final EmployeeRepository employeeRepository;
     private final CustomerRepository customerRepository;
     private final PasswordEncoder passwordEncoder;
+    private final com.redshanflora.redshanflora_backend.service.ActivityLogService activityLogService;
 
     @Override
     @Transactional
@@ -67,6 +68,14 @@ public class AdminUserServiceImpl implements AdminUserService {
                 .build();
 
         Manager savedManager = managerRepository.save(manager);
+
+        activityLogService.logActivity(
+                "USER_ADDED",
+                "Manager Added",
+                savedUser.getName() + " was registered as a Manager.",
+                "Admin",
+                "ADMIN"
+        );
 
         // 3. Return the response DTO
         return mapToAdminUserResponse(savedUser);
@@ -106,6 +115,14 @@ public class AdminUserServiceImpl implements AdminUserService {
                 .build();
 
         Employee savedEmployee = employeeRepository.save(employee);
+
+        activityLogService.logActivity(
+                "USER_ADDED",
+                "Employee Added",
+                savedUser.getName() + " was registered as an Employee.",
+                "Admin",
+                "ADMIN"
+        );
 
         // 3. Return the response DTO
         return mapToAdminUserResponse(savedUser);

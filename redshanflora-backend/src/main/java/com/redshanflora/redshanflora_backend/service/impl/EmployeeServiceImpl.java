@@ -23,6 +23,7 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     private final EmployeeRepository employeeRepository;
     private final OrderRepository orderRepository;
+    private final com.redshanflora.redshanflora_backend.service.ActivityLogService activityLogService;
 
 
     @Override
@@ -68,9 +69,17 @@ public class EmployeeServiceImpl implements EmployeeService {
         orderRepository.save(order);
         employeeRepository.save(employee);
 
+        activityLogService.logActivity(
+                "TASK_ASSIGNED",
+                "Employee Assigned to Work",
+                "Manager assigned Order #RS-" + order.getId() + " to Employee " + (employee.getUser() != null ? employee.getUser().getName() : "Staff") + ".",
+                "Manager",
+                "MANAGER"
+        );
+
         return AssignOrderResponseDTO.builder()
                 .employeeId(employee.getId())
-                .employeeName(employee.getUser().getName())
+                .employeeName(employee.getUser() != null ? employee.getUser().getName() : null)
                 .orderId(order.getId())
                 .message("Order assigned successfully")
                 .build();

@@ -47,6 +47,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/payment/notify", "/api/checkout/notify").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**", "/api/categories/**", "/api/subcategories/**").permitAll()
                         .requestMatchers("/uploads/**", "/models/**").permitAll()
+                        .requestMatchers(
+                                "/api/admin/profile", "/api/admin/profile/**",
+                                "/api/admin/settings", "/api/admin/settings/**",
+                                "/api/admin/notifications", "/api/admin/notifications/**",
+                                "/api/reports", "/api/reports/**"
+                        ).permitAll()
 
                         // Role-specific protected endpoints
                         .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "MANAGER")
@@ -81,6 +87,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/payment/notify", "/api/checkout/notify").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**", "/api/categories/**", "/api/subcategories/**").permitAll()
                         .requestMatchers("/uploads/**", "/models/**").permitAll()
+                        .requestMatchers(
+                                "/api/admin/profile", "/api/admin/profile/**",
+                                "/api/admin/settings", "/api/admin/settings/**",
+                                "/api/admin/notifications", "/api/admin/notifications/**",
+                                "/api/reports", "/api/reports/**"
+                        ).permitAll()
 
                         // Role-specific protected endpoints
                         .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "MANAGER")

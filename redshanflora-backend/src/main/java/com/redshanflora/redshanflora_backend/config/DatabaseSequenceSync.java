@@ -33,9 +33,20 @@ public class DatabaseSequenceSync implements CommandLineRunner {
             try {
                 jdbcTemplate.execute("ALTER TABLE \"order\" ADD COLUMN IF NOT EXISTS address VARCHAR(500)");
                 jdbcTemplate.execute("ALTER TABLE \"order\" ADD COLUMN IF NOT EXISTS phone VARCHAR(50)");
-                log.info("Ensured 'address' and 'phone' columns exist in 'order' table.");
+                jdbcTemplate.execute(
+                    "CREATE TABLE IF NOT EXISTS activity_log (" +
+                    "id BIGSERIAL PRIMARY KEY, " +
+                    "activity_type VARCHAR(255) NOT NULL, " +
+                    "title VARCHAR(255) NOT NULL, " +
+                    "description VARCHAR(1000), " +
+                    "performed_by VARCHAR(255), " +
+                    "user_role VARCHAR(255), " +
+                    "timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP" +
+                    ")"
+                );
+                log.info("Ensured 'activity_log' table exists in database.");
             } catch (Exception ex) {
-                log.warn("Could not alter 'order' table for address/phone columns", ex);
+                log.warn("Could not execute DDL updates", ex);
             }
         } catch (Exception e) {
             log.error("Failed to synchronize PostgreSQL sequence for 'user' table", e);
