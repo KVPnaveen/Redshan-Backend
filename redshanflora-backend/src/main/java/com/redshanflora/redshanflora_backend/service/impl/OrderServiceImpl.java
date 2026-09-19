@@ -520,6 +520,8 @@ public class OrderServiceImpl implements OrderService {
                 .orderId(order.getId())
                 .customerName(customerName)
                 .totalAmount(order.getTotalAmount())
+                .address(order.getAddress())
+                .phone(order.getPhone())
                 .orderStatus(order.getOrderStatus())
                 .build();
     }
