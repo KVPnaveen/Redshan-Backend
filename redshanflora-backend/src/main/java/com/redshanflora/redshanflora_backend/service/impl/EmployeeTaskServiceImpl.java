@@ -12,15 +12,19 @@ import com.redshanflora.redshanflora_backend.enums.SubStatus;
 import com.redshanflora.redshanflora_backend.repository.*;
 import com.redshanflora.redshanflora_backend.service.EmployeeTaskService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.File;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class EmployeeTaskServiceImpl implements EmployeeTaskService {
 
@@ -174,6 +178,7 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
         String flowerType = "N/A";
         Integer numberOfFlowers = 0;
         String bouquetStyle = customizedBouquet.getBouquetStyle();
+        String sizeLabel = null;
         String snapshot = customizedBouquet.getCustomBouquetSnapshot();
         Map<String, Integer> flowerQuantities = new LinkedHashMap<>();
 
@@ -189,6 +194,16 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
                     String snapshotBouquetStyle = root.path("bouquetStyle").asText(null);
                     if (snapshotBouquetStyle != null && !snapshotBouquetStyle.isBlank()) {
                         bouquetStyle = snapshotBouquetStyle;
+                    }
+                }
+
+                //------------------ SIZE LABEL -------------------------------------------------
+
+                JsonNode sizeNode = root.path("size");
+                if (!sizeNode.isMissingNode() && sizeNode.hasNonNull("label")) {
+                    String label = sizeNode.path("label").asText(null);
+                    if (label != null && !label.isBlank()) {
+                        sizeLabel = label;
                     }
                 }
 
@@ -235,6 +250,10 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
             bouquetStyle = "N/A";
         }
 
+        //------------------ FIND IMAGE FROM FOLDER -------------------------------------
+
+        String imageUrl = findCustomBouquetImageUrl(order, customizedBouquet);
+
         //------------------ BUILD DTO --------------------------------------------------
 
         return CustomizedOrderItemDTO.builder()
@@ -250,6 +269,8 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
                 .numberOfFlowers(numberOfFlowers)
                 .bouquetStyle(bouquetStyle)
                 .flowerQuantities(flowerQuantities)
+                .sizeLabel(sizeLabel)
+                .imageUrl(imageUrl)
                 .build();
     }
 
@@ -408,6 +429,8 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
                 }
             }
 
+            String imageUrl = findCustomBouquetImageUrl(order, customizedBouquet);
+
             // 2. Build the customized item DTO
             CustomizedOrderItemDTO itemDTO = CustomizedOrderItemDTO.builder()
                     .itemId(customizedBouquet.getId())
@@ -418,6 +441,7 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
                     .numberOfFlowers(totalFlowerCount)
                     .bouquetStyle(bouquetStyle != null ? bouquetStyle : "N/A")
                     .flowerQuantities(flowerQuantities)
+                    .imageUrl(imageUrl)
                     .build();
 
             List<CustomizedOrderItemDTO> items = new ArrayList<>();
@@ -436,9 +460,6 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
 
         return response;
     }
-
-    //--------------------------------AI
-    // noemal orders
 
     //------------------ START ITEM (NORMAL) ----------------------------------------
 
@@ -629,9 +650,6 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
         return "All items completed. Order completed successfully.";
     }
 
-
-    // customized
-
     //------------------ START CUSTOMIZED ITEM --------------------------------------
 
     @Override
@@ -773,5 +791,46 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
         }
     }
 
-//--------------------------------AI
+    private String findCustomBouquetImageUrl(Order order, CustomizedBouquet customizedBouquet) {
+        if (order == null || order.getId() == null) {
+            return null;
+        }
+
+        // PRIMARY: Read imageUrl directly from the snapshot JSON (saved at upload time).
+        // This is reliable and independent of filename patterns.
+        if (customizedBouquet != null) {
+            String snapshot = customizedBouquet.getCustomBouquetSnapshot();
+            if (snapshot != null && !snapshot.isBlank()) {
+                try {
+                    JsonNode root = objectMapper.readTree(snapshot);
+                    if (root.hasNonNull("imageUrl")) {
+                        String imageUrl = root.path("imageUrl").asText(null);
+                        if (imageUrl != null && !imageUrl.isBlank()) {
+                            return imageUrl;
+                        }
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to read imageUrl from snapshot for orderId={}: {}", order.getId(), e.getMessage());
+                }
+            }
+        }
+
+        // FALLBACK: Scan the uploads folder by filename prefix (legacy behaviour).
+        Long customerId = (customizedBouquet != null && customizedBouquet.getCustomer() != null)
+                ? customizedBouquet.getCustomer().getId()
+                : null;
+
+        String prefix = (customerId != null)
+                ? "customer_" + customerId + "_order_" + order.getId() + "_"
+                : "order_" + order.getId() + "_";
+
+        File folder = Paths.get("uploads", "custom-bouquets").toFile();
+        if (folder.exists() && folder.isDirectory()) {
+            File[] matchingFiles = folder.listFiles((dir, name) -> name.startsWith(prefix));
+            if (matchingFiles != null && matchingFiles.length > 0) {
+                return "/uploads/custom-bouquets/" + matchingFiles[0].getName();
+            }
+        }
+        return null;
+    }
 }

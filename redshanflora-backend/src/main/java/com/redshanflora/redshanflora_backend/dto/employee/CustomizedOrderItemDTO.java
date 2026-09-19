@@ -20,6 +20,7 @@ public class CustomizedOrderItemDTO {
     private String flowerType;
     private Integer numberOfFlowers;
     private String bouquetStyle;
+    private String sizeLabel;
     private Map<String, Integer> flowerQuantities;
-
+    private String imageUrl;
 }
