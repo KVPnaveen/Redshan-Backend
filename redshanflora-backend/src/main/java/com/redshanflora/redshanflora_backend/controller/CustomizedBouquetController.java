@@ -1,8 +1,13 @@
 package com.redshanflora.redshanflora_backend.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.redshanflora.redshanflora_backend.config.WebConfig;
 import com.redshanflora.redshanflora_backend.dto.customized.CustomizedBouquetUploadResponseDTO;
+import com.redshanflora.redshanflora_backend.entity.CustomizedBouquet;
 import com.redshanflora.redshanflora_backend.entity.Order;
+import com.redshanflora.redshanflora_backend.repository.CustomizedBouquetRepository;
 import com.redshanflora.redshanflora_backend.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +31,8 @@ import java.util.*;
 public class CustomizedBouquetController {
 
     private final OrderRepository orderRepository;
+    private final CustomizedBouquetRepository customizedBouquetRepository;
+    private final ObjectMapper objectMapper;
 
     private static final Set<String> ALLOWED_EXTENSIONS = Set.of("png", "jpg", "jpeg", "webp");
 
@@ -115,8 +122,34 @@ public class CustomizedBouquetController {
             Files.copy(image.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
             log.info("[DEBUG CONTROLLER] Saved bouquet image to physical path: {}", targetPath);
 
-
             String relativePath = "uploads/custom-bouquets/" + fileName;
+            String imageUrl = "/uploads/custom-bouquets/" + fileName;
+
+            // Patch the customized_bouquet snapshot JSON to store imageUrl directly in DB.
+            // This means the employee task lookup will read the URL from the snapshot
+            // instead of trying to guess it by scanning filenames on disk.
+            try {
+                CustomizedBouquet bouquet = customizedBouquetRepository.findByOrder(order).orElse(null);
+                if (bouquet != null) {
+                    String existingSnapshot = bouquet.getCustomBouquetSnapshot();
+                    ObjectNode snapshotNode;
+                    if (existingSnapshot != null && !existingSnapshot.isBlank()) {
+                        JsonNode parsed = objectMapper.readTree(existingSnapshot);
+                        snapshotNode = (parsed instanceof ObjectNode) ? (ObjectNode) parsed : objectMapper.createObjectNode();
+                    } else {
+                        snapshotNode = objectMapper.createObjectNode();
+                    }
+                    snapshotNode.put("imageUrl", imageUrl);
+                    bouquet.setCustomBouquetSnapshot(objectMapper.writeValueAsString(snapshotNode));
+                    customizedBouquetRepository.save(bouquet);
+                    log.info("[DEBUG CONTROLLER] Patched snapshot imageUrl for orderId={} -> {}", orderId, imageUrl);
+                } else {
+                    log.warn("[DEBUG CONTROLLER] No CustomizedBouquet found for orderId={}, imageUrl not saved to snapshot", orderId);
+                }
+            } catch (Exception snapshotEx) {
+                // Non-fatal: image is already saved to disk; just log and continue
+                log.warn("[DEBUG CONTROLLER] Failed to patch snapshot imageUrl for orderId={}: {}", orderId, snapshotEx.getMessage());
+            }
 
             CustomizedBouquetUploadResponseDTO response = CustomizedBouquetUploadResponseDTO.builder()
                     .customerId(customerId)
