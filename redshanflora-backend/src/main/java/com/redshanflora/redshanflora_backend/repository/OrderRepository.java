@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -152,4 +153,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             Instant startDate,
             Instant endDate
     );
+
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.orderStatus IN :statuses")
+    BigDecimal sumTotalAmountByOrderStatusIn(@Param("statuses") List<MainOrderStatus> statuses);
+
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.orderStatus IN :statuses AND (o.orderDate IS NULL OR o.orderDate >= :startDate)")
+    BigDecimal sumTotalAmountByOrderStatusInAndOrderDateAfter(@Param("statuses") List<MainOrderStatus> statuses, @Param("startDate") Instant startDate);
 }

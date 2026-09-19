@@ -82,4 +82,13 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
             @Param("startDate") Instant startDate,
             @Param("endDate") Instant endDate
     );
+
+    @Query("""
+        SELECT oi.product, SUM(oi.quantity)
+        FROM OrderItem oi
+        WHERE oi.product IS NOT NULL
+        GROUP BY oi.product
+        ORDER BY SUM(oi.quantity) DESC
+    """)
+    List<Object[]> findTopSellingProductsRaw();
 }
