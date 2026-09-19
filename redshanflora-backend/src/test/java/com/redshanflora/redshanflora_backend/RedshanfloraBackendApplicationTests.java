@@ -116,10 +116,10 @@ class RedshanfloraBackendApplicationTests {
 		cartItem.setIsCustom(false);
 		cartItem.setNumericPrice(product.getPrice().doubleValue());
 
-		CheckoutRequest request = new CheckoutRequest(
-				Collections.singletonList(cartItem),
-				"USD",
-				0.0);
+		CheckoutRequest request = new CheckoutRequest();
+		request.setItems(Collections.singletonList(cartItem));
+		request.setCurrency("USD");
+		request.setDiscountAmount(0.0);
 
 		// 3. Call the checkout controller
 		ResponseEntity<CheckoutResponse> responseEntity = checkoutController.initializeCheckout(request);

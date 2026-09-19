@@ -53,6 +53,7 @@ public class AdminReportServiceImpl implements AdminReportService {
     private final OrderItemRepository orderItemRepository;
 
     private final CustomerRepository customerRepository;
+    private final com.redshanflora.redshanflora_backend.service.ActivityLogService activityLogService;
 
 
 
@@ -262,12 +263,11 @@ public class AdminReportServiceImpl implements AdminReportService {
         ordersMap.put("cancelled", cancelledOrders);
         response.put("orders", ordersMap);
 
-        // Calculate Order Segmentation & Efficiency for Doughnut Chart
+        // Calculate Order Segmentation & Efficiency for Doughnut Chart (Completed, Processing, Pending)
         long segCompleted = currentCompleted;
         long segProcessing = orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.PROCESSING, periodStart, periodEnd);
         long segPending = orderRepository.countByOrderStatusAndOrderDateBetween(MainOrderStatus.ORDER_CONFIRMED, periodStart, periodEnd);
-        long segCancelled = 0;
-        long segTotal = segCompleted + segProcessing + segPending + segCancelled;
+        long segTotal = segCompleted + segProcessing + segPending;
         
         double orderEfficiency = (segTotal > 0) ? ((double) segCompleted * 100.0) / segTotal : 100.0;
         
@@ -275,7 +275,6 @@ public class AdminReportServiceImpl implements AdminReportService {
         orderSegmentationMap.put("completed", segCompleted);
         orderSegmentationMap.put("processing", segProcessing);
         orderSegmentationMap.put("pending", segPending);
-        orderSegmentationMap.put("cancelled", segCancelled);
         
         response.put("orderSegmentation", orderSegmentationMap);
         response.put("orderEfficiency", Math.round(orderEfficiency));
@@ -293,6 +292,9 @@ public class AdminReportServiceImpl implements AdminReportService {
             recentOrdersMapList.add(orderMap);
         }
         response.put("recentOrders", recentOrdersMapList);
+
+        // 8. Live Activities
+        response.put("liveActivities", activityLogService.getRecentActivities());
 
 
 
