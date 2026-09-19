@@ -300,18 +300,22 @@ public class AdminReportServiceImpl implements AdminReportService {
 
         // 4. Category Performance Breakdown (Dynamically queried from database)
         List<Object[]> rawCategoryData;
+        BigDecimal customizedRevenue;
         if (period.equalsIgnoreCase("lastmonth")) {
             rawCategoryData = orderItemRepository.findCategoryRevenueByPaymentStatusAndDateBetween("paid", periodStart, periodEnd);
+            customizedRevenue = orderRepository.sumCustomizedBouquetRevenueByPaymentStatusAndDateBetween("paid", periodStart, periodEnd);
         } else {
             rawCategoryData = orderItemRepository.findCategoryRevenueByPaymentStatusAndDateAfter("paid", periodStart);
+            customizedRevenue = orderRepository.sumCustomizedBouquetRevenueByPaymentStatusAndDateAfter("paid", periodStart);
         }
 
         Map<String, BigDecimal> categoryRevenues = new HashMap<>();
         categoryRevenues.put("Bouquets", BigDecimal.ZERO);
         categoryRevenues.put("Head Dresses", BigDecimal.ZERO);
         categoryRevenues.put("Individual Flowers", BigDecimal.ZERO);
+        categoryRevenues.put("Customization Product", customizedRevenue != null ? customizedRevenue : BigDecimal.ZERO);
 
-        BigDecimal totalCategoryRevenue = BigDecimal.ZERO;
+        BigDecimal totalCategoryRevenue = customizedRevenue != null ? customizedRevenue : BigDecimal.ZERO;
 
         for (Object[] row : rawCategoryData) {
             String dbCatName = (String) row[0];
@@ -324,6 +328,8 @@ public class AdminReportServiceImpl implements AdminReportService {
                     matchedKey = "Head Dresses";
                 } else if (dbCatName.equalsIgnoreCase("Individual Flowers") || dbCatName.toLowerCase().contains("flower")) {
                     matchedKey = "Individual Flowers";
+                } else if (dbCatName.equalsIgnoreCase("Customization Product") || dbCatName.toLowerCase().contains("custom")) {
+                    matchedKey = "Customization Product";
                 }
                 
                 if (matchedKey != null) {
@@ -335,13 +341,14 @@ public class AdminReportServiceImpl implements AdminReportService {
 
         List<Map<String, Object>> categoryPerformance = new ArrayList<>();
         if (totalCategoryRevenue.compareTo(BigDecimal.ZERO) == 0) {
-            // Default placeholder proportions if no sales exist in database yet
-            categoryPerformance.add(createCategoryMap("Bouquets", 60));
+            // Default placeholder proportions if no sales exist in database yet (4 categories)
+            categoryPerformance.add(createCategoryMap("Bouquets", 45));
             categoryPerformance.add(createCategoryMap("Head Dresses", 25));
             categoryPerformance.add(createCategoryMap("Individual Flowers", 15));
+            categoryPerformance.add(createCategoryMap("Customization Product", 15));
         } else {
             // Calculate actual percentages dynamically
-            for (String catName : Arrays.asList("Bouquets", "Head Dresses", "Individual Flowers")) {
+            for (String catName : Arrays.asList("Bouquets", "Head Dresses", "Individual Flowers", "Customization Product")) {
                 BigDecimal rev = categoryRevenues.get(catName);
                 int pct = rev.multiply(BigDecimal.valueOf(100))
                         .divide(totalCategoryRevenue, 0, RoundingMode.HALF_UP)

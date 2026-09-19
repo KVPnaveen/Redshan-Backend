@@ -159,4 +159,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o WHERE o.orderStatus IN :statuses AND (o.orderDate IS NULL OR o.orderDate >= :startDate)")
     BigDecimal sumTotalAmountByOrderStatusInAndOrderDateAfter(@Param("statuses") List<MainOrderStatus> statuses, @Param("startDate") Instant startDate);
+
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o JOIN o.payment pay WHERE o.customizedBouquet IS NOT NULL AND LOWER(pay.paymentStatus) = :status AND (pay.paymentDate IS NULL OR pay.paymentDate >= :startDate)")
+    BigDecimal sumCustomizedBouquetRevenueByPaymentStatusAndDateAfter(@Param("status") String status, @Param("startDate") Instant startDate);
+
+    @Query("SELECT COALESCE(SUM(o.totalAmount), 0) FROM Order o JOIN o.payment pay WHERE o.customizedBouquet IS NOT NULL AND LOWER(pay.paymentStatus) = :status AND pay.paymentDate >= :startDate AND pay.paymentDate < :endDate")
+    BigDecimal sumCustomizedBouquetRevenueByPaymentStatusAndDateBetween(@Param("status") String status, @Param("startDate") Instant startDate, @Param("endDate") Instant endDate);
 }

@@ -51,6 +51,7 @@ public class SecurityConfig {
                                 "/api/admin/profile", "/api/admin/profile/**",
                                 "/api/admin/settings", "/api/admin/settings/**",
                                 "/api/admin/notifications", "/api/admin/notifications/**",
+                                "/api/admin/users", "/api/admin/users/**",
                                 "/api/reports", "/api/reports/**"
                         ).permitAll()
 
@@ -91,6 +92,7 @@ public class SecurityConfig {
                                 "/api/admin/profile", "/api/admin/profile/**",
                                 "/api/admin/settings", "/api/admin/settings/**",
                                 "/api/admin/notifications", "/api/admin/notifications/**",
+                                "/api/admin/users", "/api/admin/users/**",
                                 "/api/reports", "/api/reports/**"
                         ).permitAll()
 
