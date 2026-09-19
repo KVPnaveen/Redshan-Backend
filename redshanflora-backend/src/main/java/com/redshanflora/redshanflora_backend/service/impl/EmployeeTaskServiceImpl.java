@@ -34,6 +34,7 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
     private final EmployeeRepository employeeRepository;
     private final CustomizedBouquetRepository customizedBouquetRepository;
     private final ObjectMapper objectMapper;
+    private final com.redshanflora.redshanflora_backend.service.ActivityLogService activityLogService;
 
     //------------------ NORMAL ASSIGNED TASKS --------------------------------------
 
@@ -661,6 +662,13 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
                 }
 
                 orderRepository.save(order);
+                activityLogService.logActivity(
+                        "ORDER_COMPLETED",
+                        "Order Completed",
+                        "Order #RS-" + order.getId() + " has been completed and marked done.",
+                        employee != null && employee.getUser() != null ? employee.getUser().getName() : "Staff",
+                        "EMPLOYEE"
+                );
                 return "All normal items and customized bouquet completed. Order completed successfully.";
             } else {
                 // Normal done, but custom bouquet still PENDING / START / STOP
@@ -687,6 +695,13 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
         }
 
         orderRepository.save(order);
+        activityLogService.logActivity(
+                "ORDER_COMPLETED",
+                "Order Completed",
+                "Order #RS-" + order.getId() + " has been completed and marked done.",
+                employee != null && employee.getUser() != null ? employee.getUser().getName() : "Staff",
+                "EMPLOYEE"
+        );
         return "All items completed. Order completed successfully.";
     }
 
@@ -824,6 +839,13 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
             }
 
             orderRepository.save(order);
+            activityLogService.logActivity(
+                    "ORDER_COMPLETED",
+                    "Order Completed",
+                    "Order #RS-" + order.getId() + " customized bouquet completed and marked done.",
+                    employee != null && employee.getUser() != null ? employee.getUser().getName() : "Staff",
+                    "EMPLOYEE"
+            );
             return "Customized bouquet completed. Order completed successfully.";
         } else {
             // Bouquet is done, but standard items are still pending

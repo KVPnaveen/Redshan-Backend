@@ -25,16 +25,19 @@ public class AddProductServiceImpl implements AddProductService {
     private final CategoryRepository categoryRepository;
     private final SubCategoryRepository subCategoryRepository;
     private final com.redshanflora.redshanflora_backend.service.NotificationSettingService notificationSettingService;
+    private final com.redshanflora.redshanflora_backend.service.ActivityLogService activityLogService;
 
     public AddProductServiceImpl(ProductRepository productRepository,
                                  CategoryRepository categoryRepository,
                                  SubCategoryRepository subCategoryRepository,
-                                 com.redshanflora.redshanflora_backend.service.NotificationSettingService notificationSettingService) {
+                                 com.redshanflora.redshanflora_backend.service.NotificationSettingService notificationSettingService,
+                                 com.redshanflora.redshanflora_backend.service.ActivityLogService activityLogService) {
 
         this.productRepository = productRepository;
         this.categoryRepository = categoryRepository;
         this.subCategoryRepository = subCategoryRepository;
         this.notificationSettingService = notificationSettingService;
+        this.activityLogService = activityLogService;
     }
 
     @Override
@@ -84,6 +87,14 @@ public class AddProductServiceImpl implements AddProductService {
 
         Product savedProduct = productRepository.save(product);
         notificationSettingService.checkAndNotifyLowStock(savedProduct);
+
+        activityLogService.logActivity(
+                "PRODUCT_ADDED",
+                "New Product Added",
+                "Product '" + savedProduct.getProductName() + "' was added to inventory.",
+                "Manager",
+                "MANAGER"
+        );
 
         return mapToResponse(savedProduct);
     }
