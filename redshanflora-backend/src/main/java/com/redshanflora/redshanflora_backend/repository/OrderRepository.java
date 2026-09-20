@@ -50,15 +50,15 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     // =========================================================
 
     @Query("""
-        SELECT o
-        FROM Order o
-        WHERE o.employee.id = :employeeId
-          AND o.customizedBouquet IS NULL
-          AND o.orderStatus <> :status
-    """)
+    SELECT o
+    FROM Order o
+    WHERE o.employee.id = :employeeId
+      AND o.customizedBouquet IS NULL
+      AND o.orderStatus NOT IN (:excludedStatuses)
+""")
     List<Order> findNormalAssignedOrders(
             @Param("employeeId") Long employeeId,
-            @Param("status") MainOrderStatus status
+            @Param("excludedStatuses") List<MainOrderStatus> excludedStatuses
     );
 
     @Query("""
@@ -95,15 +95,15 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     // =========================================================
 
     @Query("""
-        SELECT o
-        FROM Order o
-        WHERE o.employee.id = :employeeId
-          AND o.customizedBouquet IS NOT NULL
-          AND o.orderStatus <> :status
-    """)
+    SELECT o
+    FROM Order o
+    WHERE o.employee.id = :employeeId
+      AND o.customizedBouquet IS NOT NULL
+      AND o.orderStatus NOT IN (:excludedStatuses)
+""")
     List<Order> findCustomizedAssignedOrders(
             @Param("employeeId") Long employeeId,
-            @Param("status") MainOrderStatus status
+            @Param("excludedStatuses") List<MainOrderStatus> excludedStatuses
     );
 
     // =========================================================

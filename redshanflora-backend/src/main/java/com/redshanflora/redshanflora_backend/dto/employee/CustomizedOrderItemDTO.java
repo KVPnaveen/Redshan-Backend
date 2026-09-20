@@ -21,6 +21,7 @@ public class CustomizedOrderItemDTO {
     private Integer numberOfFlowers;
     private String bouquetStyle;
     private String sizeLabel;
+    private String wrapping;
     private Map<String, Integer> flowerQuantities;
     private String imageUrl;
 }

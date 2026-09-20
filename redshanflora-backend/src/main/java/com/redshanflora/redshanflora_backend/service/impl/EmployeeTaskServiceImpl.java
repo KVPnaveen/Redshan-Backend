@@ -43,7 +43,10 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
     public List<AssignedTaskDTO> getNormalAssignedTasks(Long employeeId) {
         List<Order> normalOrders = orderRepository.findNormalAssignedOrders(
                 employeeId,
-                MainOrderStatus.ORDER_COMPLETED
+                List.of(
+                        MainOrderStatus.ORDER_COMPLETED,
+                        MainOrderStatus.DISPATCHED_TO_COURIER
+                )
         );
 
         // Fetch BOTH orders that have items not yet COMPLETED (PENDING, START, STOP)
@@ -69,10 +72,15 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
     @Override
     @Transactional(readOnly = true)
     public List<AssignedTaskDTO> getCustomizedAssignedTasks(Long employeeId) {
+
         List<Order> orders = orderRepository.findCustomizedAssignedOrders(
                 employeeId,
-                MainOrderStatus.ORDER_COMPLETED
+                List.of(
+                        MainOrderStatus.ORDER_COMPLETED,
+                        MainOrderStatus.DISPATCHED_TO_COURIER
+                )
         );
+
         return convertCustomizedOrdersToTaskDTO(orders);
     }
 
@@ -179,6 +187,7 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
         String flowerType = "N/A";
         Integer numberOfFlowers = 0;
         String bouquetStyle = customizedBouquet.getBouquetStyle();
+        String wrapping = customizedBouquet.getWrapping();
         String sizeLabel = null;
         String snapshot = customizedBouquet.getCustomBouquetSnapshot();
         Map<String, Integer> flowerQuantities = new LinkedHashMap<>();
@@ -195,6 +204,20 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
                     String snapshotBouquetStyle = root.path("bouquetStyle").asText(null);
                     if (snapshotBouquetStyle != null && !snapshotBouquetStyle.isBlank()) {
                         bouquetStyle = snapshotBouquetStyle;
+                    }
+                }
+
+                //------------------ WRAPPING ---------------------------------------------------
+
+                if (root.hasNonNull("wrappingId")) {
+                    String snapshotWrapping = root.path("wrappingId").asText(null);
+                    if (snapshotWrapping != null && !snapshotWrapping.isBlank()) {
+                        wrapping = snapshotWrapping;
+                    }
+                } else if (root.hasNonNull("wrapping")) {
+                    String snapshotWrapping = root.path("wrapping").asText(null);
+                    if (snapshotWrapping != null && !snapshotWrapping.isBlank()) {
+                        wrapping = snapshotWrapping;
                     }
                 }
 
@@ -271,6 +294,7 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
                 .bouquetStyle(bouquetStyle)
                 .flowerQuantities(flowerQuantities)
                 .sizeLabel(sizeLabel)
+                .wrapping(wrapping != null ? wrapping : "N/A")
                 .imageUrl(imageUrl)
                 .build();
     }
@@ -396,10 +420,12 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
                 continue;
             }
 
-            // 1. Extract flower breakdown and style from snapshot JSON
+            // 1. Extract flower breakdown, style, wrapping, size from snapshot JSON
             Map<String, Integer> flowerQuantities = new LinkedHashMap<>();
             int totalFlowerCount = 0;
             String bouquetStyle = customizedBouquet.getBouquetStyle();
+            String wrapping = customizedBouquet.getWrapping();
+            String sizeLabel = null;
             String snapshot = customizedBouquet.getCustomBouquetSnapshot();
 
             if (snapshot != null && !snapshot.isBlank()) {
@@ -410,6 +436,26 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
                         String snapshotStyle = root.path("bouquetStyle").asText(null);
                         if (snapshotStyle != null && !snapshotStyle.isBlank()) {
                             bouquetStyle = snapshotStyle;
+                        }
+                    }
+
+                    if (root.hasNonNull("wrappingId")) {
+                        String snapshotWrapping = root.path("wrappingId").asText(null);
+                        if (snapshotWrapping != null && !snapshotWrapping.isBlank()) {
+                            wrapping = snapshotWrapping;
+                        }
+                    } else if (root.hasNonNull("wrapping")) {
+                        String snapshotWrapping = root.path("wrapping").asText(null);
+                        if (snapshotWrapping != null && !snapshotWrapping.isBlank()) {
+                            wrapping = snapshotWrapping;
+                        }
+                    }
+
+                    JsonNode sizeNode = root.path("size");
+                    if (!sizeNode.isMissingNode() && sizeNode.hasNonNull("label")) {
+                        String label = sizeNode.path("label").asText(null);
+                        if (label != null && !label.isBlank()) {
+                            sizeLabel = label;
                         }
                     }
 
@@ -441,6 +487,8 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
                     .flowerType(String.join(", ", flowerQuantities.keySet()))
                     .numberOfFlowers(totalFlowerCount)
                     .bouquetStyle(bouquetStyle != null ? bouquetStyle : "N/A")
+                    .sizeLabel(sizeLabel)
+                    .wrapping(wrapping != null ? wrapping : "N/A")
                     .flowerQuantities(flowerQuantities)
                     .imageUrl(imageUrl)
                     .build();
