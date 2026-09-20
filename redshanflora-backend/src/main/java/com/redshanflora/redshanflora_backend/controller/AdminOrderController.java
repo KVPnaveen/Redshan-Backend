@@ -39,4 +39,14 @@ public class AdminOrderController {
         OrderDetailsDto details = orderService.getAdminOrderDetails(orderId);
         return ResponseEntity.ok(details);
     }
+
+    @PutMapping("/{orderId}/status")
+    public ResponseEntity<OrderSummaryDto> updateOrderStatus(
+            @PathVariable Long orderId,
+            @RequestParam com.redshanflora.redshanflora_backend.enums.MainOrderStatus status
+    ) {
+        log.info("Received PUT request to update order {} status to {}", orderId, status);
+        OrderSummaryDto updated = orderService.updateOrderStatus(orderId, status);
+        return ResponseEntity.ok(updated);
+    }
 }

@@ -30,6 +30,8 @@ public interface OrderService {
 
     com.redshanflora.redshanflora_backend.dto.order.AdminOrderStatsDto getAdminOrderStats();
 
+    OrderSummaryDto updateOrderStatus(Long orderId, com.redshanflora.redshanflora_backend.enums.MainOrderStatus newStatus);
+
     List<OrderStatusDTO> getPreOrders();
 
     List<OrderStatusDTO> getProcessingOrders();

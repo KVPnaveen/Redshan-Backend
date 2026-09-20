@@ -273,14 +273,29 @@ public class OrderServiceImpl implements OrderService {
         public com.redshanflora.redshanflora_backend.dto.order.AdminOrderStatsDto getAdminOrderStats() {
             long pendingCount = orderRepository.countByOrderStatus(MainOrderStatus.ORDER_CONFIRMED);
             long processingCount = orderRepository.countByOrderStatus(MainOrderStatus.PROCESSING);
-            long completedCount = orderRepository.countByOrderStatus(MainOrderStatus.ORDER_COMPLETED)
-                    + orderRepository.countByOrderStatus(MainOrderStatus.DISPATCHED_TO_COURIER);
+            long completedCount = orderRepository.countByOrderStatus(MainOrderStatus.ORDER_COMPLETED);
+            long dispatchedCount = orderRepository.countByOrderStatus(MainOrderStatus.DISPATCHED_TO_COURIER);
 
             return com.redshanflora.redshanflora_backend.dto.order.AdminOrderStatsDto.builder()
                     .pending(pendingCount)
                     .processing(processingCount)
                     .completed(completedCount)
+                    .dispatched(dispatchedCount)
                     .build();
+        }
+
+        @Override
+        @Transactional
+        public OrderSummaryDto updateOrderStatus(Long orderId, MainOrderStatus newStatus) {
+            Order order = orderRepository.findById(orderId)
+                    .orElseThrow(() -> new com.redshanflora.redshanflora_backend.exception.ResourceNotFoundException(
+                            "Order not found with id: " + orderId
+                    ));
+
+            order.setOrderStatus(newStatus);
+            Order savedOrder = orderRepository.save(order);
+            log.info("Updated status of order {} to {}", orderId, newStatus);
+            return mapToSummaryDto(savedOrder);
         }
 
         private OrderSummaryDto mapToSummaryDto (Order order){
@@ -555,23 +570,6 @@ public class OrderServiceImpl implements OrderService {
                 "[DISPATCH ORDER] Current status: {}",
                 order.getOrderStatus()
         );
-
-
-        // --------------------------------------------------------
-        // SAFETY CHECK
-        // --------------------------------------------------------
-        // Only ORDER_COMPLETED orders can be dispatched.
-        // --------------------------------------------------------
-
-        if (order.getOrderStatus()
-                != MainOrderStatus.ORDER_COMPLETED) {
-
-            throw new IllegalStateException(
-                    "Only completed orders can be dispatched. "
-                            + "Current status: "
-                            + order.getOrderStatus()
-            );
-        }
 
 
         // --------------------------------------------------------
