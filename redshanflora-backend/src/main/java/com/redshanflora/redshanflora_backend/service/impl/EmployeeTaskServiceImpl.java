@@ -43,7 +43,10 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
     public List<AssignedTaskDTO> getNormalAssignedTasks(Long employeeId) {
         List<Order> normalOrders = orderRepository.findNormalAssignedOrders(
                 employeeId,
-                MainOrderStatus.ORDER_COMPLETED
+                List.of(
+                        MainOrderStatus.ORDER_COMPLETED,
+                        MainOrderStatus.DISPATCHED_TO_COURIER
+                )
         );
 
         // Fetch BOTH orders that have items not yet COMPLETED (PENDING, START, STOP)
@@ -69,10 +72,15 @@ public class EmployeeTaskServiceImpl implements EmployeeTaskService {
     @Override
     @Transactional(readOnly = true)
     public List<AssignedTaskDTO> getCustomizedAssignedTasks(Long employeeId) {
+
         List<Order> orders = orderRepository.findCustomizedAssignedOrders(
                 employeeId,
-                MainOrderStatus.ORDER_COMPLETED
+                List.of(
+                        MainOrderStatus.ORDER_COMPLETED,
+                        MainOrderStatus.DISPATCHED_TO_COURIER
+                )
         );
+
         return convertCustomizedOrdersToTaskDTO(orders);
     }
 
