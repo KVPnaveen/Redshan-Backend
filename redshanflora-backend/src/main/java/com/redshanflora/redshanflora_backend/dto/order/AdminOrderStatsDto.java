@@ -13,4 +13,6 @@ public class AdminOrderStatsDto {
     private long pending;
     private long processing;
     private long completed;
+    private long dispatched;
 }
+
